@@ -20,9 +20,11 @@
 
 <div align="center">
 
-![Data Platform Architecture](docs/diagrams/architecture-flow.svg)
+[![Data Platform Architecture](docs/diagrams/architecture-flow.svg)](docs/architecture/END_TO_END_FLOW.md)
 
-*Data flows from sources through the medallion layers into consumption + ML inference — animated architecture*
+**👆 Click the diagram above for the full interactive architecture docs**
+
+*Data flows from sources → medallion layers → consumption + ML inference*
 
 </div>
 
