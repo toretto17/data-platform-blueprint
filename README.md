@@ -18,6 +18,16 @@
 
 ---
 
+<div align="center">
+
+![Data Platform Architecture](docs/diagrams/architecture-flow.svg)
+
+*Data flows from sources through the medallion layers into consumption + ML inference — animated architecture*
+
+</div>
+
+---
+
 [Quick Start](#-quick-start) · [Architecture](#-architecture) · [What's Inside](#-whats-inside) · [How to Use](#-how-to-use) · [Best Practices](#-best-practices)
 
 </div>
