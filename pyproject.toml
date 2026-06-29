@@ -1,0 +1,45 @@
+[project]
+name = "data-platform-blueprint"
+version = "0.1.0"
+description = "Reusable enterprise data platform template for AWS (Glue/SageMaker) and Databricks (Workflows/MLflow/Unity Catalog) — DE, DS, and MLOps."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+
+# ============================================================
+# Tooling configuration
+# ============================================================
+
+[tool.black]
+line-length = 110
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 110
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+# Glue/Databricks runtime globals are injected — ignore "undefined name" for them
+extend-exclude = ["src/data_science/notebooks"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4"]
+ignore = [
+    "E501",  # line length handled by black
+    "F821",  # spark/dbutils globals injected at runtime
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra -q"
+markers = [
+    "unit: fast, no external deps",
+    "integration: requires sample data / spark",
+    "performance: benchmark, slow",
+]

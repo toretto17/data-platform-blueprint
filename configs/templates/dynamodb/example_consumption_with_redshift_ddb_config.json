@@ -1,0 +1,105 @@
+{
+    "job_name": {
+        "S": "consumption_ticketing_mobile_pipeline"
+    },
+    "area_name": {
+        "S": "mobile_ticketing_analytics"
+    },
+    "is_active": {
+        "BOOL": true
+    },
+    "job_detail": {
+        "M": {
+            "glue_transformation_gold_config": {
+                "M": {
+                    "Arguments": {
+                        "M": {
+                            "--MODE": {
+                                "S": "overwrite"
+                            },
+                            "--RETENTION_MONTHS": {
+                                "S": "24"
+                            },
+                            "--FORCE_RUN": {
+                                "S": "true"
+                            },
+                            "--TARGET_BUCKET": {
+                                "S": "s3-bnic-aii-${environment}-consumption-${account_id}"
+                            },
+                            "--TARGET_DATABASE": {
+                                "S": "insights_consumption_layer"
+                            },
+                            "--TARGET_TABLE": {
+                                "S": "ticketing_summary"
+                            },
+                            "--data_date": {
+                                "S": "None"
+                            },
+                            "--SOURCE_CONFIGS": {
+                                "S": "[{\"db\": \"mobile_revenue_analytics_gold\", \"table\": \"gold_ticketing_mobile\", \"rulesets\": [{\"name\": \"mobile_revenue_analytics_gold_gold_ticketing_mobile_business_rules\", \"should_continue\": true}, {\"name\": \"mobile_revenue_analytics_gold_gold_ticketing_mobile_data_completeness\", \"should_continue\": true}, {\"name\": \"mobile_revenue_analytics_gold_gold_ticketing_mobile_schema_validation\", \"should_continue\": false}]}, {\"db\": \"mobile_revenue_analytics_silver\", \"table\": \"cellsite_mapping\"}, {\"db\": \"edmaiml_central_data\", \"table\": \"dim_time\"}]"
+                            }
+                        }
+                    },
+                    "JobName": {
+                        "S": "glue_bnic_aii_consumpt_ticketing_summary"
+                    },
+                    "NumberOfWorkers": {
+                        "N": "5"
+                    },
+                    "Timeout": {
+                        "N": "240"
+                    },
+                    "WorkerType": {
+                        "S": "G.2X"
+                    }
+                }
+            },
+            "redshift_config": {
+                "M": {
+                    "target_tables_list": {
+                        "L": [
+                            {
+                                "M": {
+                                    "target_database": {
+                                        "S": "bnic_aii_db"
+                                    },
+                                    "target_schema": {
+                                        "S": "insights_consumption_layer"
+                                    },
+                                    "target_table": {
+                                        "S": "ticketing_summary"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            },
+            "step_control": {
+                "M": {
+                    "enable_data_quality": {
+                        "BOOL": false
+                    },
+                    "enable_redshift": {
+                        "BOOL": true
+                    },
+                    "enable_sagemaker": {
+                        "BOOL": false
+                    },
+                    "enable_transformation_bronze": {
+                        "BOOL": false
+                    },
+                    "enable_transformation_gold": {
+                        "BOOL": true
+                    },
+                    "enable_transformation_silver": {
+                        "BOOL": false
+                    }
+                }
+            }
+        }
+    },
+    "job_version": {
+        "N": "1"
+    }
+}

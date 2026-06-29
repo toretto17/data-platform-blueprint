@@ -1,0 +1,17 @@
+# AWS CodeBuild: lint + test + upload scripts to S3
+version: 0.2
+env:
+  variables:
+    ENV: "CHANGE_ME"  # dev | prod
+    REGION: "ap-southeast-1"
+phases:
+  install:
+    commands:
+      - pip install -r requirements-dev.txt
+  build:
+    commands:
+      - make lint
+      - make test-unit
+      - make deploy-glue ENV=$ENV REGION=$REGION
+artifacts:
+  files: ['**/*']

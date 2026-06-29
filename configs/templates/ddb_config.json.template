@@ -1,0 +1,116 @@
+{
+    "job_name": {
+        "S": "CHANGE_ME_pipeline"
+    },
+    "area_name": {
+        "S": "CHANGE_ME_analytics"
+    },
+    "is_active": {
+        "BOOL": true
+    },
+    "job_detail": {
+        "M": {
+            "glue_transformation_silver_config": {
+                "M": {
+                    "JobName": {
+                        "S": "glue_${project}_${feature}_silver_CHANGE_ME"
+                    },
+                    "Arguments": {
+                        "M": {
+                            "--LOOKBACK_DAYS": {
+                                "S": "60"
+                            },
+                            "--MODE": {
+                                "S": "append"
+                            },
+                            "--PARTITION_COLUMN": {
+                                "S": "mnth_id"
+                            },
+                            "--source_system": {
+                                "S": "CHANGE_ME_silver"
+                            },
+                            "--TARGET_BUCKET": {
+                                "S": "s3-${project}-${feature}-${environment}-silver-${account_id}/CHANGE_ME_analytics"
+                            },
+                            "--TARGET_DATABASE": {
+                                "S": "CHANGE_ME_analytics_silver"
+                            },
+                            "--TARGET_TABLE": {
+                                "S": "silver_CHANGE_ME"
+                            },
+                            "--DQ_BUCKET": {
+                                "S": "s3-${project}-${feature}-${environment}-data-quality-${account_id}"
+                            }
+                        }
+                    }
+                }
+            },
+            "glue_transformation_gold_config": {
+                "M": {
+                    "JobName": {
+                        "S": "glue_${project}_${feature}_gold_CHANGE_ME"
+                    },
+                    "Arguments": {
+                        "M": {
+                            "--LOOKBACK_DAYS": {
+                                "S": "60"
+                            },
+                            "--MODE": {
+                                "S": "overwrite"
+                            },
+                            "--PARTITION_COLUMN": {
+                                "S": "mnth_id"
+                            },
+                            "--TARGET_BUCKET": {
+                                "S": "s3-${project}-${feature}-${environment}-gold-${account_id}/CHANGE_ME_analytics"
+                            },
+                            "--TARGET_DATABASE": {
+                                "S": "CHANGE_ME_analytics_gold"
+                            },
+                            "--TARGET_TABLE": {
+                                "S": "gold_CHANGE_ME"
+                            }
+                        }
+                    }
+                }
+            },
+            "step_control": {
+                "M": {
+                    "enable_silver": {
+                        "BOOL": true
+                    },
+                    "enable_gold": {
+                        "BOOL": true
+                    },
+                    "enable_redshift": {
+                        "BOOL": true
+                    }
+                }
+            },
+            "redshift_config": {
+                "M": {
+                    "target_tables_list": {
+                        "L": [
+                            {
+                                "M": {
+                                    "target_database": {
+                                        "S": "CHANGE_ME_db"
+                                    },
+                                    "target_schema": {
+                                        "S": "CHANGE_ME_schema"
+                                    },
+                                    "target_table": {
+                                        "S": "CHANGE_ME_table"
+                                    },
+                                    "s3_path": {
+                                        "S": "s3://s3-${project}-${feature}-${environment}-consumption-${account_id}/CHANGE_ME/"
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+}

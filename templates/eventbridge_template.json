@@ -1,0 +1,8 @@
+{
+  "Comment": "EventBridge schedule rule. See aws/src/orchestration/orchestration.py EventBridgeScheduler.",
+  "RuleName": "CHANGE_ME-daily-schedule",
+  "ScheduleExpression": "cron(0 18 * * ? *)",
+  "Target": {"Arn": "arn:aws:states:CHANGE_ME:CHANGE_ME:stateMachine:CHANGE_ME",
+             "RoleArn": "arn:aws:iam::CHANGE_ME:role/eventbridge-sfn-role",
+             "Input": "{\"dl_date\": \"auto\"}"}
+}

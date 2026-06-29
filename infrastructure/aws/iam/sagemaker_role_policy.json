@@ -1,0 +1,10 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Effect": "Allow", "Action": ["sagemaker:*FeatureGroup*","sagemaker:*Model*","sagemaker:*Endpoint*",
+     "sagemaker:*Transform*","sagemaker:*Pipeline*"], "Resource": "*"},
+    {"Effect": "Allow", "Action": ["s3:*"], "Resource": ["arn:aws:s3:::CHANGE_ME-*","arn:aws:s3:::CHANGE_ME-*/*"]},
+    {"Effect": "Allow", "Action": ["iam:PassRole"], "Resource": "*",
+     "Condition": {"StringEquals": {"iam:PassedToService": "sagemaker.amazonaws.com"}}}
+  ]
+}

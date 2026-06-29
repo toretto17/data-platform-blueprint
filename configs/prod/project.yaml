@@ -1,0 +1,31 @@
+# prod environment configuration (FILLED EXAMPLE)
+# Copy from configs/templates/project.yaml.template and customize.
+
+project: "mycompany"
+feature: "analytics"
+environment: "prod"
+account_id: "127214173492"
+region: "ap-southeast-1"
+
+buckets:
+  silver: "s3-mycompany-analytics-prod-silver-${account_id}"
+  gold: "s3-mycompany-analytics-prod-gold-${account_id}"
+  consumption: "s3-mycompany-analytics-prod-consumption-${account_id}"
+  feature_store: "s3-mycompany-analytics-prod-feature-${account_id}"
+  ml_results: "s3-mycompany-analytics-prod-ml-results-${account_id}"
+  artifactory: "s3-mycompany-analytics-prod-artifactory-${account_id}"
+
+databases:
+  silver: "analytics_silver"
+  gold: "analytics_gold"
+  consumption: "insights_consumption_layer"
+
+iam:
+  glue_role: "arn:aws:iam::${account_id}:role/GlueServiceRole-prod-mycompany"
+  sagemaker_role: "arn:aws:iam::${account_id}:role/iam-mycompany-mlops-prod-sagemaker-default-execution-role"
+
+# Databricks (if applicable)
+databricks:
+  catalog: "prod"
+  schema: "analytics"
+  workspace_url: "https://CHANGE_ME.cloud.databricks.com"

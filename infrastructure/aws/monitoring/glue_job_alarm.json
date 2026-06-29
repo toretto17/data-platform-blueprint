@@ -1,0 +1,12 @@
+{
+  "Comment": "CloudWatch alarm: Glue job failure",
+  "AlarmName": "CHANGE_ME-glue-job-failed",
+  "MetricName": "glue.driver.aggregate.numFailedTasks",
+  "Namespace": "Glue",
+  "Statistic": "Sum",
+  "Period": 300,
+  "EvaluationPeriods": 1,
+  "Threshold": 1,
+  "ComparisonOperator": "GreaterThanOrEqualToThreshold",
+  "AlarmActions": ["arn:aws:sns:CHANGE_ME:CHANGE_ME:CHANGE_ME-alerts"]
+}

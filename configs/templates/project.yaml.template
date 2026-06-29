@@ -1,0 +1,97 @@
+# ============================================================
+# PROJECT CONFIGURATION TEMPLATE
+# ============================================================
+# Copy this file to configs/{env}/project.yaml and fill in values.
+# All ${variable} references in DDB configs, Terraform, and SF configs
+# resolve from these values at deploy time.
+# ============================================================
+
+# --- Core Identity ---
+project: "CHANGE_ME"              # e.g., "bnic", "mycompany"
+feature: "CHANGE_ME"              # e.g., "aii", "revenue", "analytics"
+environment: "CHANGE_ME"          # e.g., "dev", "qa", "uat", "prod"
+account_id: "CHANGE_ME"           # AWS Account ID (e.g., "123456789012")
+region: "ap-southeast-1"          # AWS Region
+
+# --- S3 Buckets (auto-derived from above, override if needed) ---
+# Pattern: s3-{project}-{feature}-{env}-{layer}-{account_id}
+buckets:
+  silver: "s3-${project}-${feature}-${environment}-silver-${account_id}"
+  gold: "s3-${project}-${feature}-${environment}-gold-${account_id}"
+  consumption: "s3-${project}-${feature}-${environment}-consumption-${account_id}"
+  staging: "s3-${project}-${feature}-${environment}-staging-${account_id}"
+  artifactory: "s3-${project}-${feature}-${environment}-artifactory-${account_id}"
+  data_quality: "s3-${project}-${feature}-${environment}-data-quality-${account_id}"
+  feature_store: "s3-${project}-${feature}-${environment}-feature-${account_id}"
+  ml_results: "s3-${project}-${feature}-${environment}-ml-results-${account_id}"
+  athena_results: "s3-${project}-${feature}-${environment}-data-quality-${account_id}/athena-results"
+
+# --- Databases ---
+databases:
+  silver: "${domain}_analytics_silver"       # e.g., "mobile_revenue_analytics_silver"
+  gold: "${domain}_analytics_gold"           # e.g., "mobile_revenue_analytics_gold"
+  consumption: "insights_consumption_layer"  # shared consumption DB
+  # Cross-account source databases (federated, read-only)
+  sources:
+    - name: "source_db_1"
+      account_id: "CHANGE_ME"               # Source account
+      tables: ["table_a", "table_b"]
+
+# --- IAM Roles ---
+iam:
+  glue_role: "arn:aws:iam::${account_id}:role/GlueServiceRole-${environment}-${project}"
+  sagemaker_role: "arn:aws:iam::${account_id}:role/iam-${project}-mlops-${environment}-sagemaker-default-execution-role"
+  sfn_execution_role: "arn:aws:iam::${account_id}:role/sfn-${project}-${feature}-${environment}-etl-execution-role"
+  lambda_role: "arn:aws:iam::${account_id}:role/lambda-${project}-${feature}-${environment}-execution-role"
+
+# --- Step Functions ---
+step_functions:
+  framework_sf: "sfn-${project}-${feature}-fw-transformation"   # Shared ETL framework SF
+  redshift_sf: "sfn-${project}-fw-redshift-dataload"            # Redshift load SF
+
+# --- DynamoDB ---
+dynamodb:
+  config_table: "${project}-${feature}-fw-config-table"         # Job configuration table
+  log_table: "${project}-${feature}-fw-log-table"               # Execution log table
+
+# --- Scheduling (EventBridge) ---
+# Times in UTC. Adjust for your timezone.
+schedules:
+  sales_pipeline:
+    cron: "cron(0 18 * * ? *)"             # Daily 01:00 AM ICT (UTC+7)
+    sf_name: "${environment}-${domain}-sales-master-pipeline"
+  ticketing_pipeline:
+    cron: "cron(0 19 * * ? *)"             # Daily 02:00 AM ICT
+    sf_name: "${environment}-${domain}-ticketing-master-pipeline"
+  anomaly_inference:
+    cron: "cron(0 20 * * ? *)"             # Daily 03:00 AM ICT
+    sf_name: "${environment}-${domain}-anomaly-inference-master-pipeline"
+  forecast_inference:
+    cron: "cron(30 20 * * ? *)"            # Daily 03:30 AM ICT
+    sf_name: "${environment}-${domain}-forecast-inference-master-pipeline"
+
+# --- ML / Feature Store ---
+ml:
+  feature_groups:
+    anomaly: "sales-anomaly-features"
+    forecast: "sales-forecast-features"
+  model_package_groups:
+    anomaly: "${project}-sales-anomaly"
+    forecast: "${project}-sales-forecast"
+  ecr_repos:
+    forecast: "${account_id}.dkr.ecr.${region}.amazonaws.com/sales-forecast"
+    anomaly: "${account_id}.dkr.ecr.${region}.amazonaws.com/sales-anomaly"
+  spark_connector_jar: "s3://${buckets.artifactory}/spark-connector-jars/sagemaker-feature-store-spark-sdk-3.5.jar"
+
+# --- Redshift (if applicable) ---
+redshift:
+  cluster: "CHANGE_ME"                      # Redshift cluster identifier
+  database: "CHANGE_ME"                     # Target database
+  schema: "CHANGE_ME"                       # Target schema
+  iam_role: "arn:aws:iam::${account_id}:role/redshift-${project}-${environment}-role"
+
+# --- Monitoring ---
+monitoring:
+  sns_topic: "arn:aws:sns:${region}:${account_id}:${project}-${environment}-alerts"
+  slack_webhook: ""                         # Optional: Slack webhook URL
+  cloudwatch_namespace: "${project}-${feature}-${environment}"

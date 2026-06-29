@@ -1,0 +1,40 @@
+# Databricks Asset Bundle (DAB) — deploy jobs/clusters/notebooks
+# Run: databricks bundle deploy -t <target>
+# CHANGE_ME: workspace_host, job definitions, paths
+bundle:
+  name: CHANGE_ME-data-platform
+
+targets:
+  dev:
+    workspace:
+      host: https://CHANGE_ME.cloud.databricks.com
+    default: true
+  prod:
+    workspace:
+      host: https://CHANGE_ME.cloud.databricks.com
+
+resources:
+  jobs:
+    etl_pipeline:
+      name: "${bundle.name}-etl-pipeline"
+      job_clusters:
+        - job_cluster_key: etl_cluster
+          new_cluster:
+            spark_version: "15.4.x-scala2.12"
+            node_type_id: m5.xlarge
+            autoscale:
+              min_workers: 1
+              max_workers: 4
+      tasks:
+        - task_key: silver
+          job_cluster_key: etl_cluster
+          notebook_task:
+            notebook_path: ../databricks/src/silver/jobs/silver_job.py
+        - task_key: gold
+          depends_on: [{task_key: silver}]
+          job_cluster_key: etl_cluster
+          notebook_task:
+            notebook_path: ../databricks/src/gold/marts/gold_job.py
+      schedule:
+        quartz_cron_expression: "0 0 18 * * ?"
+        timezone_id: UTC

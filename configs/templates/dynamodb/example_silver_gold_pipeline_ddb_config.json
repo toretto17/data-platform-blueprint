@@ -1,0 +1,122 @@
+{
+    "job_name": {
+        "S": "silver_gold_ticketing_mobile_pipeline"
+    },
+    "area_name": {
+        "S": "mobile_ticketing_analytics"
+    },
+    "is_active": {
+        "BOOL": true
+    },
+    "job_detail": {
+        "M": {
+            "glue_transformation_silver_config": {
+                "M": {
+                    "Arguments": {
+                        "M": {
+                            "--MODE": {
+                                "S": "overwrite"
+                            },
+                            "--PARTITION_COLUMN": {
+                                "S": "mnth_id"
+                            },
+                            "--SOURCE_CONFIGS": {
+                                "S": "[{\"db\": \"edmaiml_central_data\", \"table\": \"mobile_downtime_ticket_d\", \"source_partition_column\": \"data_dt\", \"rulesets\": [{\"name\": \"edmaiml_central_data_mobile_downtime_ticket_d_business_rules\", \"should_continue\": true}, {\"name\": \"edmaiml_central_data_mobile_downtime_ticket_d_data_completeness\", \"should_continue\": true}, {\"name\": \"edmaiml_central_data_mobile_downtime_ticket_d_schema_validation\", \"should_continue\": false}]}, {\"db\": \"edmaiml_central_data\", \"table\": \"dim_time\"}]"
+                            },
+                            "--TARGET_BUCKET": {
+                                "S": "s3-bnic-aii-${environment}-silver-${account_id}/mobile_revenue_analytics"
+                            },
+                            "--TARGET_DATABASE": {
+                                "S": "mobile_revenue_analytics_silver"
+                            },
+                            "--TARGET_TABLE": {
+                                "S": "silver_ticketing_mobile"
+                            },
+                            "--data_date": {
+                                "S": "None"
+                            }
+                        }
+                    },
+                    "JobName": {
+                        "S": "glue_bnic_aii_silver_ticketing_mobile"
+                    },
+                    "NumberOfWorkers": {
+                        "N": "4"
+                    },
+                    "Timeout": {
+                        "N": "120"
+                    },
+                    "WorkerType": {
+                        "S": "G.1X"
+                    }
+                }
+            },
+            "glue_transformation_gold_config": {
+                "M": {
+                    "Arguments": {
+                        "M": {
+                            "--MODE": {
+                                "S": "overwrite"
+                            },
+                            "--RETENTION_MONTHS": {
+                                "S": "24"
+                            },
+                            "--FORCE_RUN": {
+                                "S": "true"
+                            },
+                            "--TARGET_BUCKET": {
+                                "S": "s3-bnic-aii-${environment}-gold-${account_id}/mobile_revenue_analytics"
+                            },
+                            "--TARGET_DATABASE": {
+                                "S": "mobile_revenue_analytics_gold"
+                            },
+                            "--TARGET_TABLE": {
+                                "S": "gold_ticketing_mobile"
+                            },
+                            "--data_date": {
+                                "S": "None"
+                            }
+                        }
+                    },
+                    "JobName": {
+                        "S": "glue_bnic_aii_gold_ticketing_mobile"
+                    },
+                    "NumberOfWorkers": {
+                        "N": "5"
+                    },
+                    "Timeout": {
+                        "N": "180"
+                    },
+                    "WorkerType": {
+                        "S": "G.2X"
+                    }
+                }
+            },
+            "step_control": {
+                "M": {
+                    "enable_data_quality": {
+                        "BOOL": false
+                    },
+                    "enable_redshift": {
+                        "BOOL": false
+                    },
+                    "enable_sagemaker": {
+                        "BOOL": false
+                    },
+                    "enable_transformation_bronze": {
+                        "BOOL": false
+                    },
+                    "enable_transformation_gold": {
+                        "BOOL": true
+                    },
+                    "enable_transformation_silver": {
+                        "BOOL": true
+                    }
+                }
+            }
+        }
+    },
+    "job_version": {
+        "N": "1"
+    }
+}

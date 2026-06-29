@@ -1,0 +1,13 @@
+# Production Terraform variables (CHANGE_ME)
+tag_project = "mycompany-analytics"
+project     = "mycompany"
+feature     = "analytics"
+environment = "prod"
+account_id  = "CHANGE_ME"
+region      = "ap-southeast-1"
+assume_role_arn         = "arn:aws:iam::CHANGE_ME:role/terraform-execution-role"
+tfstate_bucket          = "CHANGE_ME-tfstate-bucket"
+glue_artifact_bucket_name = "s3-mycompany-analytics-prod-artifactory-CHANGE_ME"
+glue_service_role_arn   = "arn:aws:iam::CHANGE_ME:role/GlueServiceRole-prod-mycompany"
+s3_artifact_bucket_name = "s3-mycompany-analytics-prod-artifactory-CHANGE_ME"
+sfn_execution_role_arn  = "arn:aws:iam::CHANGE_ME:role/role-mycompany-analytics-prod-fw-sfn-execution"

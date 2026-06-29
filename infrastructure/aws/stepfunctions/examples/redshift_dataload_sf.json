@@ -1,0 +1,136 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "List Target Tables",
+  "States": {
+    "List Target Tables": {
+      "Type": "Pass",
+      "Next": "Set date-related vars",
+      "Assign": {
+        "target_tables_list": "{% $states.input.target_tables_list %}",
+        "var_dl_date": "{% $exists($states.input.dl_date) ? $states.input.dl_date : \"NULL\" %}"
+      }
+    },
+    "Set date-related vars": {
+      "Type": "Pass",
+      "Next": "Ingest Target Tables",
+      "Assign": {
+        "var_yyyy": "{% $substring($var_dl_date,0,4) %}",
+        "var_mm": "{% $substring($var_dl_date,5,2) %}",
+        "var_dd": "{% $substring($var_dl_date,8,2) %}"
+      }
+    },
+    "Ingest Target Tables": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "Set Input Var",
+        "States": {
+          "Set Input Var": {
+            "Type": "Pass",
+            "Next": "if date_format is provided",
+            "Assign": {
+              "target_database": "{% $states.input.target_database %}",
+              "target_schema": "{% $states.input.target_schema %}",
+              "target_table": "{% $states.input.target_table %}",
+              "var_overwrite_condition": "{% $exists($states.input.overwrite_condition) ? $states.input.overwrite_condition : \"NULL\" %}"
+            }
+          },
+          "if date_format is provided": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Next": "Set var date_format",
+                "Condition": "{% $exists($states.input.overwrite_condition) and $exists($states.input.date_format) %}"
+              }
+            ],
+            "Default": "Execute Redshift Update Data"
+          },
+          "Set var date_format": {
+            "Type": "Pass",
+            "Next": "Set var overwrite_condition",
+            "Assign": {
+              "var_date_format": "{% $states.input.date_format ~> $replace('yyyy', $var_yyyy) ~> $replace('mm', $var_mm) ~> $replace('dd', $var_dd) %}"
+            }
+          },
+          "Set var overwrite_condition": {
+            "Type": "Pass",
+            "Assign": {
+              "var_overwrite_condition": "{% $replace($states.input.overwrite_condition, '${dl_date}', $var_date_format) %}"
+            },
+            "Next": "Execute Redshift Update Data"
+          },
+          "Fail Info": {
+            "Type": "Pass",
+            "Next": "Fail"
+          },
+          "Fail": {
+            "Type": "Fail"
+          },
+          "Execute Redshift Update Data": {
+            "Type": "Task",
+            "Arguments": {
+              "Sql": "{% \"CALL schema_dataload_fw.sp__latest_snapshot_data_update('\" & $target_database & \"','\" & $target_schema & \"','\" & $target_table & \"','\" & $var_overwrite_condition & \"');\" %}",
+              "Database": "bnic_aii_db",
+              "WorkgroupName": "redshift-bnic-aii-nonprod-workgroup",
+              "SecretArn": "arn:aws:secretsmanager:ap-southeast-1:503561443692:secret:redshift-bnic-aii-nonprod-etl-usr-22C3Rd"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:redshiftdata:executeStatement",
+            "Next": "Wait Redshift Update Data",
+            "Assign": {
+              "redshift_response_execute_update": "{% $states.result %}"
+            }
+          },
+          "Wait Redshift Update Data": {
+            "Type": "Wait",
+            "Seconds": 5,
+            "Next": "Describe Redshift Update Data"
+          },
+          "Describe Redshift Update Data": {
+            "Type": "Task",
+            "Arguments": {
+              "Id": "{% $redshift_response_execute_update.Id %}"
+            },
+            "Resource": "arn:aws:states:::aws-sdk:redshiftdata:describeStatement",
+            "Next": "Check Redshift Update Data",
+            "Assign": {
+              "redshift_response_describe_update": "{% $states.result %}"
+            }
+          },
+          "Check Redshift Update Data": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Next": "Success Info",
+                "Condition": "{% $redshift_response_describe_update.Status in ['FINISHED'] %}",
+                "Comment": "['FINISHED']"
+              },
+              {
+                "Next": "Wait Redshift Update Data",
+                "Condition": "{% $redshift_response_describe_update.Status in ['STARTED','SUBMITTED','PICKED'] %}",
+                "Comment": "['STARTED','SUBMITTED','PICKED']"
+              },
+              {
+                "Next": "Fail Info",
+                "Condition": "{% $redshift_response_describe_update.Status in ['ABORTED','FAILED'] %}",
+                "Comment": "['ABORTED','FAILED']"
+              }
+            ],
+            "Default": "Fail Info"
+          },
+          "Success Info": {
+            "Type": "Pass",
+            "Next": "Success"
+          },
+          "Success": {
+            "Type": "Succeed"
+          }
+        }
+      },
+      "End": true,
+      "Items": "{% $target_tables_list %}"
+    }
+  },
+  "QueryLanguage": "JSONata"
+}

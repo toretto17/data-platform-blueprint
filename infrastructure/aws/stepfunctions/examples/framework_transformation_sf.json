@@ -1,0 +1,869 @@
+{
+  "Comment": "Enhanced SDLF Control Framework for Data Quality ETL Orchestration",
+  "StartAt": "1_validate_input_dl_date",
+  "States": {
+    "1_validate_input_dl_date": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Next": "1a_calculate_date_delta",
+          "Condition": "{% $states.input.dl_date = \"${schedule}\" %}",
+          "Comment": "calculate delta date",
+          "Assign": {
+            "var_dl_date": "",
+            "var_job_name": "{% $states.input.job_name %}",
+            "var_pl_state_results": {},
+            "var_pl_state_execution_time": {}
+          },
+          "Output": {
+            "current_date": "{% $now('[Y0001]-[M01]-[D01]', '+0700') %}",
+            "date_delta": "{% $states.input.date_delta %}"
+          }
+        },
+        {
+          "Comment": "validate, and use specific date",
+          "Next": "2a_get_job_config_from_fw_config_table",
+          "Assign": {
+            "var_dl_date": "{%  $states.input.dl_date %}",
+            "var_job_name": "{% $states.input.job_name %}",
+            "var_pl_state_results": {},
+            "var_pl_state_execution_time": {}
+          },
+          "Condition": "{% ((($number($substring($states.input.dl_date, 0, 4)))) > (1900) and (($number($substring($states.input.dl_date, 0, 4)))) < (2500) and (($number($substring($states.input.dl_date, 5, 2)))) < (13) and (($number($substring($states.input.dl_date, 8, 2)))) < (32)) %}"
+        }
+      ],
+      "QueryLanguage": "JSONata",
+      "Default": "99_Skip"
+    },
+    "1a_calculate_date_delta": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Date Calculator Lambda Failed",
+          "Next": "7b_log_fw_failed_status",
+          "Assign": {
+            "var_job_run_error_msg": "{% $exists($states.errorOutput) and $exists($states.errorOutput.Cause) ? ($type($states.errorOutput.Cause) = 'string' ? ($exists($parse($states.errorOutput.Cause).ErrorMessage) ? $parse($states.errorOutput.Cause).ErrorMessage : 'Date calculation failed') : 'Date calculation failed') : 'Date calculation failed' %}",
+            "var_job_run_error_detail": "{% $exists($states.errorOutput) ? {'Error': 'Date calculation failed', 'Step': 'Date Calculator Lambda', 'ErrorType': ($exists($states.errorOutput.Error) ? $states.errorOutput.Error : 'Unknown'), 'Timestamp': $now()} : {'Error': 'Date calculation failed', 'Step': 'Date Calculator Lambda', 'ErrorType': 'Unknown', 'Timestamp': $now()} %}",
+            "var_failed_step": "date_calculation",
+            "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'date_calculation': 0}]) %}",
+            "var_pl_state_results": "{% $merge([$var_pl_state_results, {'date_calculation': {'Status': 'FAILED', 'ErrorMessage': 'Date calculation failed'}}]) %}"
+          }
+        }
+      ],
+      "Next": "2a_get_job_config_from_fw_config_table",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "Payload": {
+          "current_date": "{% $states.input.current_date %}",
+          "date_delta": "{% $states.input.date_delta %}"
+        },
+        "FunctionName": "arn:aws:lambda:ap-southeast-1:503561443692:function:lambda-bnic-fw-date-calculator"
+      },
+      "Assign": {
+        "var_dl_date": "{% $states.result.Payload.data.dl_date %}"
+      }
+    },
+    "2a_get_job_config_from_fw_config_table": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Next": "2b_check_if_job_exist",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "FunctionName": "arn:aws:lambda:ap-southeast-1:503561443692:function:lambda-bnic-fw-job-config-fetcher",
+        "Payload": {
+          "job_name": "{% $var_job_name %}",
+          "dl_date": "{% $var_dl_date %}"
+        }
+      },
+      "Output": {
+        "job_config": "{% $exists($states.result.Payload.body) ? $states.result.Payload.body : {} %}",
+        "workflow_param": "{% $states.input %}"
+      },
+      "Assign": {
+        "var_job_config": "{% $exists($states.result.Payload.body) ? $states.result.Payload.body : {} %}",
+        "var_workflow_param": {
+          "dl_date": "{% $var_dl_date %}",
+          "job_name": "{% $var_job_name %}"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Job Config Reader Lambda Failed",
+          "Next": "7b_log_fw_failed_status",
+          "Assign": {
+            "var_job_run_error_msg": "{% $exists($states.errorOutput) and $exists($states.errorOutput.Cause) ? ($type($states.errorOutput.Cause) = 'string' ? ($exists($parse($states.errorOutput.Cause).ErrorMessage) ? $parse($states.errorOutput.Cause).ErrorMessage : 'Failed to read job configuration') : 'Failed to read job configuration') : 'Failed to read job configuration' %}",
+            "var_job_run_error_detail": "{% $exists($states.errorOutput) ? {'Error': 'Failed to read job configuration', 'Step': 'Job Config Reader Lambda', 'ErrorType': ($exists($states.errorOutput.Error) ? $states.errorOutput.Error : 'Unknown'), 'Timestamp': $now()} : {'Error': 'Failed to read job configuration', 'Step': 'Job Config Reader Lambda', 'ErrorType': 'Unknown', 'Timestamp': $now()} %}",
+            "var_failed_step": "job_config_reader",
+            "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'job_config_reader': 0}]) %}",
+            "var_pl_state_results": "{% $merge([$var_pl_state_results, {'job_config_reader': {'Status': 'FAILED', 'ErrorMessage': 'Failed to read job configuration'}}]) %}"
+          }
+        }
+      ]
+    },
+    "2b_check_if_job_exist": {
+      "Type": "Choice",
+      "Default": "2a_job_name_not_found_in_fw_config_table",
+      "Choices": [
+        {
+          "Next": "3_check_data_quality_enabled",
+          "Condition": "{% $exists($var_job_config.job_detail) %}"
+        }
+      ],
+      "QueryLanguage": "JSONata"
+    },
+    "2a_job_name_not_found_in_fw_config_table": {
+      "Type": "Pass",
+      "Next": "99_Failed",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_job_run_error_msg": "{% 'Job configuration not found for job: ' & $var_job_name %}",
+        "var_job_run_error_detail": "{% {'Error': 'Job configuration not found', 'Step': 'Job Configuration Validation', 'JobName': $var_job_name, 'DataLakeDate': $var_dl_date, 'Timestamp': $now(), 'ErrorType': 'ConfigurationNotFound'} %}",
+        "var_failed_step": "job_config_validation",
+        "var_step_execution_time": "{% {'job_config_validation': 0} %}",
+        "var_step_results": "{% {'job_config_validation': {'Status': 'FAILED', 'ErrorMessage': $var_job_run_error_msg}} %}"
+      }
+    },
+    "3_check_data_quality_enabled": {
+      "Type": "Choice",
+      "Default": "4_1_check_transformation_bronze_enabled",
+      "Choices": [
+        {
+          "Next": "3a_get_config",
+          "Condition": "{% $exists($var_job_config.job_detail.step_control.enable_data_quality) ? $var_job_config.job_detail.step_control.enable_data_quality : true %}",
+          "Comment": "Data Quality Evaluation - Execute if enabled (default: true)"
+        }
+      ],
+      "QueryLanguage": "JSONata"
+    },
+    "3a_get_config": {
+      "Type": "Pass",
+      "Next": "3b_start_data_quality_evaluation",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_dq_data_source": "{% $var_job_config.job_detail.glue_data_quality_config.DataSource %}",
+        "var_dq_role": "{% $var_job_config.job_detail.glue_data_quality_config.Role %}",
+        "var_dq_ruleset_names": "{% $var_job_config.job_detail.glue_data_quality_config.RulesetNames %}",
+        "var_dq_additional_run_options": "{% $var_job_config.job_detail.glue_data_quality_config.AdditionalRunOptions %}"
+      }
+    },
+    "3b_start_data_quality_evaluation": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:startDataQualityRulesetEvaluationRun",
+      "Next": "3c_get_evaluation_result",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "DataSource": "{% $var_dq_data_source %}",
+        "Role": "{% $var_dq_role %}",
+        "RulesetNames": "{% $var_dq_ruleset_names %}",
+        "AdditionalRunOptions": "{% $var_dq_additional_run_options %}"
+      },
+      "Assign": {
+        "var_dq_evaluation_run_id": "{% $states.result.RunId %}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Start Data Quality Evaluation Failed",
+          "Next": "7b_log_fw_failed_status",
+          "Assign": {
+            "var_data_quality_end_time": "{% $now() %}",
+            "var_job_run_error_msg": "{% $exists($states.errorOutput) and $exists($states.errorOutput.Cause) ? ($type($states.errorOutput.Cause) = 'string' ? ($exists($parse($states.errorOutput.Cause).ErrorMessage) ? $parse($states.errorOutput.Cause).ErrorMessage : 'Failed to start data quality evaluation') : 'Failed to start data quality evaluation') : 'Failed to start data quality evaluation' %}",
+            "var_job_run_error_detail": "{% $exists($states.errorOutput) ? {'Error': 'Failed to start data quality evaluation', 'Step': 'Start Data Quality Evaluation', 'ErrorType': ($exists($states.errorOutput.Error) ? $states.errorOutput.Error : 'Unknown'), 'Timestamp': $now()} : {'Error': 'Failed to start data quality evaluation', 'Step': 'Start Data Quality Evaluation', 'ErrorType': 'Unknown', 'Timestamp': $now()} %}",
+            "var_failed_step": "start_data_quality_evaluation",
+            "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'data_quality': $round(($toMillis($var_data_quality_end_time) - $toMillis($var_data_quality_start_time)) / 1000, 2)}]) %}",
+            "var_pl_state_results": "{% $merge([$var_pl_state_results, {'data_quality': {'Status': 'FAILED', 'ErrorMessage': $var_job_run_error_msg, 'ExecutionTime': $round(($toMillis($var_data_quality_end_time) - $toMillis($var_data_quality_start_time)) / 1000, 2)}}]) %}"
+          }
+        }
+      ]
+    },
+    "3c_get_evaluation_result": {
+      "Type": "Map",
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "GetDataQualityRulesetEvaluationRun",
+        "States": {
+          "GetDataQualityRulesetEvaluationRun": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:glue:getDataQualityRulesetEvaluationRun",
+            "QueryLanguage": "JSONata",
+            "Arguments": {
+              "RunId": "{% $var_dq_evaluation_run_id %}"
+            },
+            "End": true,
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Glue.InternalServiceException",
+                  "Glue.EntityNotFoundException"
+                ],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 3,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              }
+            ]
+          }
+        }
+      },
+      "Items": "{% $var_dq_ruleset_names %}",
+      "Next": "3d_validate_evaluation_results",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_dq_evaluation_results": "{% $states.result %}",
+        "var_data_quality_end_time": "{% $now() %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'data_quality': $round(($toMillis($var_data_quality_end_time) - $toMillis($var_data_quality_start_time)) / 1000, 2)}]) %}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Get Evaluation Results Failed",
+          "Next": "7b_log_fw_failed_status",
+          "Assign": {
+            "var_data_quality_end_time": "{% $now() %}",
+            "var_job_run_error_msg": "{% $exists($states.errorOutput) and $exists($states.errorOutput.Cause) ? ($type($states.errorOutput.Cause) = 'string' ? ($exists($parse($states.errorOutput.Cause).ErrorMessage) ? $parse($states.errorOutput.Cause).ErrorMessage : 'Failed to get evaluation results') : 'Failed to get evaluation results') : 'Failed to get evaluation results' %}",
+            "var_job_run_error_detail": "{% $exists($states.errorOutput) ? {'Error': 'Failed to get evaluation results', 'Step': 'Get Evaluation Results', 'ErrorType': ($exists($states.errorOutput.Error) ? $states.errorOutput.Error : 'Unknown'), 'Timestamp': $now()} : {'Error': 'Failed to get evaluation results', 'Step': 'Get Evaluation Results', 'ErrorType': 'Unknown', 'Timestamp': $now()} %}",
+            "var_failed_step": "get_evaluation_results",
+            "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'data_quality': $round(($toMillis($var_data_quality_end_time) - $toMillis($var_data_quality_start_time)) / 1000, 2)}]) %}",
+            "var_pl_state_results": "{% $merge([$var_pl_state_results, {'data_quality': {'Status': 'FAILED', 'ErrorMessage': $var_job_run_error_msg, 'ExecutionTime': $round(($toMillis($var_data_quality_end_time) - $toMillis($var_data_quality_start_time)) / 1000, 2)}}]) %}"
+          }
+        }
+      ]
+    },
+    "3d_validate_evaluation_results": {
+      "Type": "Choice",
+      "Default": "3d1_data_quality_validation_failed",
+      "Choices": [
+        {
+          "Next": "3d2_data_quality_validation_success",
+          "Condition": "{% $all($var_dq_evaluation_results, function($v) { $v.Status = 'SUCCEEDED' }) %}",
+          "Comment": "All data quality evaluations succeeded"
+        }
+      ],
+      "QueryLanguage": "JSONata"
+    },
+    "3d1_data_quality_validation_failed": {
+      "Type": "Pass",
+      "Next": "7b_log_fw_failed_status",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_dq_failed_evaluations": "{% $filter($var_dq_evaluation_results, function($v) { $v.Status != 'SUCCEEDED' }) %}",
+        "var_job_run_error_msg": "{% 'Data quality validation failed: ' & $count($var_dq_failed_evaluations) & ' out of ' & $count($var_dq_evaluation_results) & ' evaluations failed' %}",
+        "var_job_run_error_detail": "{% {'Error': 'Data quality validation failed', 'Step': 'Data Quality Validation', 'TotalEvaluations': $count($var_dq_evaluation_results), 'FailedEvaluations': $count($var_dq_failed_evaluations), 'FailedEvaluationDetails': $var_dq_failed_evaluations, 'Timestamp': $now(), 'ErrorType': 'DataQualityValidationFailed'} %}",
+        "var_failed_step": "data_quality_validation",
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'data_quality': {'Status': 'FAILED', 'TotalEvaluations': $count($var_dq_evaluation_results), 'FailedEvaluations': $count($var_dq_failed_evaluations), 'Results': $var_dq_evaluation_results, 'ExecutionTime': $round(($toMillis($var_data_quality_end_time) - $toMillis($var_data_quality_start_time)) / 1000, 2)}}]) %}"
+      }
+    },
+    "3d2_data_quality_validation_success": {
+      "Type": "Pass",
+      "Next": "4_1_check_transformation_bronze_enabled",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'data_quality': {'Status': 'SUCCEEDED', 'TotalEvaluations': $count($var_dq_evaluation_results), 'SuccessfulEvaluations': $count($var_dq_evaluation_results), 'Results': $var_dq_evaluation_results, 'ExecutionTime': $round(($toMillis($var_data_quality_end_time) - $toMillis($var_data_quality_start_time)) / 1000, 2)}}]) %}"
+      }
+    },
+    "4_1_check_transformation_bronze_enabled": {
+      "Type": "Choice",
+      "Default": "4_2_check_transformation_silver_enabled",
+      "Choices": [
+        {
+          "Next": "4_1a_get_config",
+          "Condition": "{% $exists($var_job_config.job_detail.step_control.enable_transformation_bronze) ? $var_job_config.job_detail.step_control.enable_transformation_bronze : false %}",
+          "Comment": "Transformation - Execute if enabled (default: false)"
+        }
+      ],
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_tnfm_start_time": "{% $now() %}"
+      }
+    },
+    "4_1a_get_config": {
+      "Type": "Pass",
+      "Next": "4_1b_start_job_run",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_tnfm_bronze_job_name": "{% $var_job_config.job_detail.glue_transformation_bronze_config.JobName %}",
+        "var_tnfm_bronze_job_arguments": "{% $var_job_config.job_detail.glue_transformation_bronze_config.Arguments %}",
+        "var_tnfm_bronze_job_timeout": "{% $var_job_config.job_detail.glue_transformation_bronze_config.Timeout %}"
+      }
+    },
+    "4_1b_start_job_run": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Next": "4_1c_transformation_bronze_success",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "JobName": "{% $var_tnfm_bronze_job_name %}",
+        "Arguments": "{% $merge([$var_tnfm_bronze_job_arguments, {'--data_date': $var_dl_date}]) %}",
+        "Timeout": "{% $var_tnfm_bronze_job_timeout %}"
+      },
+      "Assign": {
+        "var_tnfm_bronze_end_time": "{% $now() %}",
+        "var_tnfm_bronze_start_time": "{% $states.context.State.EnteredTime %}",
+        "var_tnfm_bronze_execution_time": "{% $states.result.ExecutionTime %}",
+        "var_tnfm_bronze_state_result": "{% $states.result %}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Transformation Job Failed",
+          "Next": "4_1d_transformation_bronze_failed",
+          "Assign": {
+            "var_tnfm_bronze_end_time": "{% $now() %}",
+            "var_tnfm_bronze_start_time": "{% $states.context.State.EnteredTime %}",
+            "var_tnfm_bronze_execution_time": "{% $round(($toMillis($now()) - $toMillis($states.context.State.EnteredTime)) / 1000, 0) %}",
+            "var_pl_error": "{% $exists($states.errorOutput) ? $states.errorOutput.Cause : '' %}",
+            "var_tnfm_state_result": "{% $exists($states.errorOutput) ? $states.errorOutput : {} %}"
+          }
+        }
+      ]
+    },
+    "4_1d_transformation_bronze_failed": {
+      "Type": "Pass",
+      "Next": "7_prepare_failed_status_logging",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'transformation_bronze':  $var_tnfm_bronze_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'transformation_bronze':  $var_tnfm_bronze_execution_time}]) %}",
+        "var_failed_step": "transformation_bronze"
+      }
+    },
+    "7_prepare_failed_status_logging": {
+      "Type": "Pass",
+      "Next": "7b_log_fw_failed_status",
+      "QueryLanguage": "JSONata",
+      "Output": {
+        "job_config": "{% $var_job_config %}",
+        "workflow_param": "{% $var_workflow_param %}",
+        "state_results": "{% $var_pl_state_results %}",
+        "execution_time_by_task": "{% $var_pl_state_execution_time %}",
+        "steps_executed": "{% $keys($var_pl_state_results) %}",
+        "job_status": "FAILED",
+        "execution_context": "{% $states.context.Execution %}",
+        "failed_step": "{% $var_failed_step %}",
+        "error_msg": "{% $var_pl_error %}"
+      }
+    },
+    "4_1c_transformation_bronze_success": {
+      "Type": "Pass",
+      "Next": "4_2_check_transformation_silver_enabled",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'transformation_bronze':  $var_tnfm_bronze_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'transformation_bronze':  $var_tnfm_bronze_execution_time}]) %}"
+      }
+    },
+    "4_2_check_transformation_silver_enabled": {
+      "Type": "Choice",
+      "Default": "4_3_check_transformation_gold_enabled",
+      "Choices": [
+        {
+          "Next": "4_2a_get_config",
+          "Condition": "{% $exists($var_job_config.job_detail.step_control.enable_transformation_silver) ? $var_job_config.job_detail.step_control.enable_transformation_silver : false %}",
+          "Comment": "Silver Transformation - Execute if enabled (default: false)"
+        }
+      ],
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_tnfm_silver_start_time": "{% $now() %}"
+      }
+    },
+    "4_2a_get_config": {
+      "Type": "Pass",
+      "Next": "4_2b_start_job_run",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_tnfm_silver_job_name": "{% $var_job_config.job_detail.glue_transformation_silver_config.JobName %}",
+        "var_tnfm_silver_job_arguments": "{% $var_job_config.job_detail.glue_transformation_silver_config.Arguments %}",
+        "var_tnfm_silver_job_timeout": "{% $var_job_config.job_detail.glue_transformation_silver_config.Timeout %}"
+      }
+    },
+    "4_2b_start_job_run": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Next": "4_2c_transformation_silver_success",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "JobName": "{% $var_tnfm_silver_job_name %}",
+        "Arguments": "{% $merge([$var_tnfm_silver_job_arguments, {'--data_date': $var_dl_date}]) %}",
+        "Timeout": "{% $var_tnfm_silver_job_timeout %}"
+      },
+      "Assign": {
+        "var_tnfm_silver_end_time": "{% $now() %}",
+        "var_tnfm_silver_start_time": "{% $states.context.State.EnteredTime %}",
+        "var_tnfm_silver_execution_time": "{% $states.result.ExecutionTime %}",
+        "var_tnfm_silver_state_result": "{% $states.result %}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Silver Transformation Job Failed",
+          "Next": "4_2d_transformation_silver_failed",
+          "Assign": {
+            "var_tnfm_silver_end_time": "{% $now() %}",
+            "var_tnfm_silver_start_time": "{% $states.context.State.EnteredTime %}",
+            "var_tnfm_silver_execution_time": "{% $round(($toMillis($now()) - $toMillis($states.context.State.EnteredTime)) / 1000, 0) %}",
+            "var_pl_error": "{% $exists($states.errorOutput) ? $states.errorOutput.Cause : '' %}",
+            "var_tnfm_silver_state_result": "{% $exists($states.errorOutput) ? $states.errorOutput : {} %}"
+          }
+        }
+      ]
+    },
+    "4_2c_transformation_silver_success": {
+      "Type": "Pass",
+      "Next": "4_3_check_transformation_gold_enabled",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'transformation_silver':  $var_tnfm_silver_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'transformation_silver':  $var_tnfm_silver_execution_time}]) %}"
+      }
+    },
+    "4_2d_transformation_silver_failed": {
+      "Type": "Pass",
+      "Next": "7_prepare_failed_status_logging",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'transformation_silver':  $var_tnfm_silver_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'transformation_silver':  $var_tnfm_silver_execution_time}]) %}",
+        "var_failed_step": "transformation_silver"
+      }
+    },
+    "4_3_check_transformation_gold_enabled": {
+      "Type": "Choice",
+      "Default": "5_check_sagemaker_pl_enabled",
+      "Choices": [
+        {
+          "Next": "4_3a_get_config",
+          "Condition": "{% $exists($var_job_config.job_detail.step_control.enable_transformation_gold) ? $var_job_config.job_detail.step_control.enable_transformation_gold : false %}",
+          "Comment": "Gold Transformation - Execute if enabled (default: false)"
+        }
+      ],
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_tnfm_gold_start_time": "{% $now() %}"
+      }
+    },
+    "4_3a_get_config": {
+      "Type": "Pass",
+      "Next": "4_3b_start_job_run",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_tnfm_gold_job_name": "{% $var_job_config.job_detail.glue_transformation_gold_config.JobName %}",
+        "var_tnfm_gold_job_arguments": "{% $var_job_config.job_detail.glue_transformation_gold_config.Arguments %}",
+        "var_tnfm_gold_job_timeout": "{% $var_job_config.job_detail.glue_transformation_gold_config.Timeout %}"
+      }
+    },
+    "4_3b_start_job_run": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Next": "4_3c_transformation_gold_success",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "JobName": "{% $var_tnfm_gold_job_name %}",
+        "Arguments": "{% $merge([$var_tnfm_gold_job_arguments, {'--data_date': $var_dl_date}]) %}",
+        "Timeout": "{% $var_tnfm_gold_job_timeout %}"
+      },
+      "Assign": {
+        "var_tnfm_gold_end_time": "{% $now() %}",
+        "var_tnfm_gold_start_time": "{% $states.context.State.EnteredTime %}",
+        "var_tnfm_gold_execution_time": "{% $states.result.ExecutionTime %}",
+        "var_tnfm_gold_state_result": "{% $states.result %}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Gold Transformation Job Failed",
+          "Next": "4_3d_transformation_gold_failed",
+          "Assign": {
+            "var_tnfm_gold_end_time": "{% $now() %}",
+            "var_tnfm_gold_start_time": "{% $states.context.State.EnteredTime %}",
+            "var_tnfm_gold_execution_time": "{% $round(($toMillis($now()) - $toMillis($states.context.State.EnteredTime)) / 1000, 0) %}",
+            "var_pl_error": "{% $exists($states.errorOutput) ? $states.errorOutput.Cause : '' %}",
+            "var_tnfm_gold_state_result": "{% $exists($states.errorOutput) ? $states.errorOutput : {} %}"
+          }
+        }
+      ]
+    },
+    "4_3c_transformation_gold_success": {
+      "Type": "Pass",
+      "Next": "5_check_sagemaker_pl_enabled",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'transformation_gold':  $var_tnfm_gold_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'transformation_gold':  $var_tnfm_gold_execution_time}]) %}"
+      }
+    },
+    "4_3d_transformation_gold_failed": {
+      "Type": "Pass",
+      "Next": "7_prepare_failed_status_logging",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'transformation_gold':  $var_tnfm_gold_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'transformation_gold':  $var_tnfm_gold_execution_time}]) %}",
+        "var_failed_step": "transformation_gold"
+      }
+    },
+    "5_check_sagemaker_pl_enabled": {
+      "Type": "Choice",
+      "Default": "6_check_redshift_load_enabled",
+      "Choices": [
+        {
+          "Next": "5a_get_config",
+          "Condition": "{% $exists($var_job_config.job_detail.step_control.enable_sagemaker) ? $var_job_config.job_detail.step_control.enable_sagemaker : false %}",
+          "Comment": "SageMaker Pipeline - Execute if enabled (default: false)"
+        }
+      ],
+      "QueryLanguage": "JSONata"
+    },
+    "5a_get_config": {
+      "Type": "Pass",
+      "Next": "5b_start_sagemaker_pl",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_sagemaker_config": "{% $var_job_config.job_detail.sagemaker_config %}"
+      }
+    },
+    "5b_start_sagemaker_pl": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::states:startExecution.sync:2",
+      "Next": "5c_sagemaker_pl_load_success",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "StateMachineArn": "arn:aws:states:ap-southeast-1:503561443692:stateMachine:sfn-bnic-aii-fw-sagemaker-pipeline-execution",
+        "Input": "{% $exists($var_sagemaker_config.ClientRequestToken) ? $var_sagemaker_config : $merge([$var_sagemaker_config, {'ClientRequestToken': $uuid()}]) %}"
+      },
+      "Assign": {
+        "var_sagemaker_pl_end_time": "{% $now() %}",
+        "var_sagemaker_pl_start_time": "{% $states.context.State.EnteredTime %}",
+        "var_sagemaker_pl_execution_time": "{% $round(($toMillis($now()) - $toMillis($states.context.State.EnteredTime)) / 1000, 0) %}",
+        "var_sagemaker_pl_state_result": "{% $states.result %}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "5d_sagemaker_pl_failed",
+          "Assign": {
+            "var_sagemaker_pl_load_end_time": "{% $now() %}",
+            "var_sagemaker_pl_load_start_time": "{% $states.context.State.EnteredTime %}",
+            "var_sagemaker_pl_load_execution_time": "{% $round(($toMillis($now()) - $toMillis($states.context.State.EnteredTime)) / 1000, 0) %}",
+            "var_pl_error": "{% $exists($states.errorOutput) ? $states.errorOutput.Cause : '' %}",
+            "var_sagemaker_pl_load_state_result": "{% $exists($states.errorOutput) ? $states.errorOutput : {} %}"
+          }
+        }
+      ]
+    },
+    "5d_sagemaker_pl_failed": {
+      "Type": "Pass",
+      "Next": "7_prepare_failed_status_logging",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'sagemaker_pl':  $var_sagemaker_pl_load_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'sagemaker_pl':  $var_sagemaker_pl_load_execution_time}]) %}",
+        "var_failed_step": "sagemaker_pl"
+      },
+      "QueryLanguage": "JSONata"
+    },
+    "5c_sagemaker_pl_load_success": {
+      "Type": "Pass",
+      "Next": "6_check_redshift_load_enabled",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'sagemaker_pl': $var_sagemaker_pl_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'sagemaker_pl': $var_sagemaker_pl_execution_time}]) %}"
+      }
+    },
+    "6_check_redshift_load_enabled": {
+      "Type": "Choice",
+      "Default": "7_prepare_success_status_logging",
+      "Choices": [
+        {
+          "Next": "6a_get_config",
+          "Condition": "{% $exists($var_job_config.job_detail.step_control.enable_redshift) ? $var_job_config.job_detail.step_control.enable_redshift : false %}",
+          "Comment": "Redshift Load - Execute if enabled (default: false)"
+        }
+      ],
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_redshift_start_time": "{% $now() %}"
+      }
+    },
+    "6a_get_config": {
+      "Type": "Pass",
+      "Next": "6b_start_redshift_load",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_redshift_config": "{% $var_job_config.job_detail.redshift_config %}"
+      }
+    },
+    "6b_start_redshift_load": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::states:startExecution.sync:2",
+      "Next": "6c_redshift_load_success",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "StateMachineArn": "arn:aws:states:ap-southeast-1:503561443692:stateMachine:sfn-bnic-fw-redshift-dataload",
+        "Input": "{% $merge([$var_redshift_config, {'dl_date': $var_dl_date}]) %}"
+      },
+      "Assign": {
+        "var_redshift_end_time": "{% $now() %}",
+        "var_redshift_start_time": "{% $states.context.State.EnteredTime %}",
+        "var_redshift_execution_time": "{% $round(($toMillis($now()) - $toMillis($states.context.State.EnteredTime)) / 1000, 0) %}",
+        "var_redshift_state_result": "{% $states.result %}"
+      },
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "6d_redshift_load_failed",
+          "Assign": {
+            "var_redshift_load_end_time": "{% $now() %}",
+            "var_redshift_load_start_time": "{% $states.context.State.EnteredTime %}",
+            "var_redshift_load_execution_time": "{% $round(($toMillis($now()) - $toMillis($states.context.State.EnteredTime)) / 1000, 0) %}",
+            "var_pl_error": "{% $exists($states.errorOutput) ? $states.errorOutput.Cause : '' %}",
+            "var_redshift_load_state_result": "{% $exists($states.errorOutput) ? $states.errorOutput : {} %}"
+          }
+        }
+      ]
+    },
+    "6d_redshift_load_failed": {
+      "Type": "Pass",
+      "Next": "7_prepare_failed_status_logging",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'redshift_load':  $var_redshift_load_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'redshift_load':  $var_redshift_load_execution_time}]) %}",
+        "var_failed_step": "redshift_load"
+      },
+      "QueryLanguage": "JSONata"
+    },
+    "6c_redshift_load_success": {
+      "Type": "Pass",
+      "Next": "7_prepare_success_status_logging",
+      "QueryLanguage": "JSONata",
+      "Assign": {
+        "var_pl_state_results": "{% $merge([$var_pl_state_results, {'redshift_load': $var_redshift_state_result}]) %}",
+        "var_pl_state_execution_time": "{% $merge([$var_pl_state_execution_time, {'redshift_load': $var_redshift_execution_time}]) %}"
+      }
+    },
+    "7_prepare_success_status_logging": {
+      "Type": "Pass",
+      "Next": "7a_log_fw_success_status",
+      "QueryLanguage": "JSONata",
+      "Output": {
+        "job_config": "{% $var_job_config %}",
+        "workflow_param": "{% $var_workflow_param %}",
+        "state_results": "{% $var_pl_state_results %}",
+        "execution_time_by_task": "{% $var_pl_state_execution_time %}",
+        "steps_executed": "{% $keys($var_pl_state_results) %}",
+        "job_status": "SUCCEEDED",
+        "execution_context": "{% $states.context.Execution %}"
+      }
+    },
+    "7a_log_fw_success_status": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Next": "8a_publish_success_msg_to_sns",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "FunctionName": "arn:aws:lambda:ap-southeast-1:503561443692:function:lambda-bnic-fw-log-writer",
+        "Payload": "{% $states.input %}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Success logging failed - still send notification",
+          "Next": "8a_publish_success_msg_to_sns",
+          "Assign": {
+            "var_logging_failed": true,
+            "var_logging_error": "{% $exists($states.errorOutput) ? ($type($states.errorOutput.Cause) = 'string' ? ($exists($parse($states.errorOutput.Cause).ErrorMessage) ? $parse($states.errorOutput.Cause).ErrorMessage : 'Failed to log success status to DynamoDB') : 'Failed to log success status to DynamoDB') : 'Failed to log success status to DynamoDB' %}"
+          }
+        }
+      ]
+    },
+    "8a_publish_success_msg_to_sns": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Next": "99_Success",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "TopicArn": "arn:aws:sns:ap-southeast-1:503561443692:sns-bnic-aii-fw-success-topic",
+        "Message": "{% 'This is to inform you that the ETL job has completed successfully.\\n\\n' & 'JOB SUMMARY\\n' & '===========\\n' & '\u2022 Job Name: ' & $var_job_name & '\\n' & '\u2022 Data Lake Date: ' & $var_dl_date & '\\n' & '\u2022 Execution ID: ' & $states.context.Execution.Id & '\\n' & '\u2022 Start Time: ' & $states.context.Execution.StartTime & '\\n' & '\u2022 End Time: ' & $now() & '\\n' & '\u2022 Total Duration: ' & $round(($toMillis($now()) - $toMillis($states.context.Execution.StartTime)) / 1000, 2) & ' seconds\\n\\n' & 'EXECUTION DETAILS\\n' & '=================\\n' & '\u2022 Steps Executed: ' & $join($keys($var_pl_state_results), ', ') & '\\n\\n' & 'Step Execution Times:\\n' & $join($map($keys($var_pl_state_execution_time), function($step) { '  - ' & $step & ': ' & $string($lookup($var_pl_state_execution_time, $step)) & ' seconds' }), '\\n') %}",
+        "Subject": "{% 'AWS Notification - ETL Job Success - ' & $var_job_name & ' (' & $var_dl_date & ')' %}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "SNS.InternalErrorException",
+            "SNS.InvalidParameterException",
+            "States.TaskFailed"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "SNS notification failed - fail the entire workflow",
+          "Next": "99_SNS_Failed"
+        }
+      ]
+    },
+    "7b_log_fw_failed_status": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Next": "8b_publish_failed_msg_to_sns",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "FunctionName": "arn:aws:lambda:ap-southeast-1:503561443692:function:lambda-bnic-fw-log-writer",
+        "Payload": "{% $merge([$states.input, {'job_run_error_detail': $var_job_run_error_detail, 'execution_time_by_task': $var_step_execution_time, 'steps_executed': $keys($var_step_results), 'job_status': 'FAILED', 'job_run_results': $var_step_results, 'failed_step': $var_failed_step, 'execution_id': $states.context.Execution.Id, 'start_time': $states.context.Execution.StartTime}]) %}"
+      },
+      "Output": "{% $states.result %}",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "Error logging failed - proceed to SNS notification anyway",
+          "Next": "8b_publish_failed_msg_to_sns",
+          "Assign": {
+            "var_logging_failed": true,
+            "var_logging_error": "{% $exists($states.errorOutput) ? $parse($states.errorOutput.Cause).ErrorMessage : 'Failed to log error details to DynamoDB' %}"
+          }
+        }
+      ]
+    },
+    "8b_publish_failed_msg_to_sns": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::sns:publish",
+      "Next": "99_Failed",
+      "QueryLanguage": "JSONata",
+      "Arguments": {
+        "TopicArn": "arn:aws:sns:ap-southeast-1:503561443692:sns-bnic-aii-fw-failed-topic",
+        "Message": "{% 'This is to notify you that the ETL job has failed and requires immediate attention.\\n\\n' & 'JOB SUMMARY\\n' & '===========\\n' & '\u2022 Job Name: ' & $var_job_name & '\\n' & '\u2022 Data Lake Date: ' & $var_dl_date & '\\n' & '\u2022 Execution ID: ' & $states.context.Execution.Id & '\\n' & '\u2022 Start Time: ' & $states.context.Execution.StartTime & '\\n' & '\u2022 Failure Time: ' & $now() & '\\n' & '\u2022 Total Duration: ' & $round(($toMillis($now()) - $toMillis($states.context.Execution.StartTime)) / 1000, 2) & ' seconds\\n\\n' & 'EXECUTION DETAILS\\n' & '=================\\n' & '\u2022 Steps Executed: ' & ($count($keys($var_pl_state_results)) > 0 ? $join($keys($var_pl_state_results), ', ') : 'None') & '\\n\\n' & 'Step Execution Times:\\n' & ($count($keys($var_pl_state_execution_time)) > 0 ? $join($map($keys($var_pl_state_execution_time), function($step) { '  - ' & $step & ': ' & $string($lookup($var_pl_state_execution_time, $step)) & ' seconds' }), '\\n') : 'No execution times recorded') & '\\n\\n' & 'FAILURE SUMMARY\\n' & '===============\\n' & '\u2022 Failed Step: ' & ($exists($var_failed_step) ? $var_failed_step : 'Unknown') & '\\n\\n' & 'Error Summary:\\n' & ($exists($var_job_run_error_msg) ? $var_job_run_error_msg : 'Unknown error occurred') & ($exists($var_job_run_error_detail) ? '\\n\\nError Details:\\n' & $string($var_job_run_error_detail) : '') %}",
+        "Subject": "{% 'AWS Notification - ETL Job Failed - ' & $var_job_name & ' (' & $var_dl_date & ')' %}"
+      },
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "SNS.InternalErrorException",
+            "SNS.InvalidParameterException",
+            "States.TaskFailed"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Comment": "SNS notification failed - fail the entire workflow",
+          "Next": "99_SNS_Failed"
+        }
+      ]
+    },
+    "99_Success": {
+      "Type": "Succeed"
+    },
+    "99_Failed": {
+      "Type": "Fail",
+      "QueryLanguage": "JSONata",
+      "Error": "{% $exists($var_job_run_error_msg) ? $var_job_run_error_msg : 'Enhanced ETL Workflow failed' %}",
+      "Cause": "{% 'Enhanced ETL Workflow failed during step execution. Failed Step: ' & ($exists($var_failed_step) ? $var_failed_step : 'Unknown') & '. Execution ID: ' & $states.context.Execution.Id & '. Job: ' & $var_job_name & ' (' & $var_dl_date & ')' %}"
+    },
+    "99_SNS_Failed": {
+      "Type": "Fail",
+      "Error": "SNS Notification Failed",
+      "Cause": "Critical failure: Unable to send notification via SNS. This indicates a serious infrastructure issue that requires immediate attention."
+    },
+    "99_Skip": {
+      "Type": "Succeed"
+    }
+  },
+  "TimeoutSeconds": 36000
+}

@@ -1,0 +1,31 @@
+# uat environment configuration (FILLED EXAMPLE)
+# Copy from configs/templates/project.yaml.template and customize.
+
+project: "mycompany"
+feature: "analytics"
+environment: "uat"
+account_id: "503561443692"
+region: "ap-southeast-1"
+
+buckets:
+  silver: "s3-mycompany-analytics-uat-silver-${account_id}"
+  gold: "s3-mycompany-analytics-uat-gold-${account_id}"
+  consumption: "s3-mycompany-analytics-uat-consumption-${account_id}"
+  feature_store: "s3-mycompany-analytics-uat-feature-${account_id}"
+  ml_results: "s3-mycompany-analytics-uat-ml-results-${account_id}"
+  artifactory: "s3-mycompany-analytics-uat-artifactory-${account_id}"
+
+databases:
+  silver: "analytics_silver"
+  gold: "analytics_gold"
+  consumption: "insights_consumption_layer"
+
+iam:
+  glue_role: "arn:aws:iam::${account_id}:role/GlueServiceRole-uat-mycompany"
+  sagemaker_role: "arn:aws:iam::${account_id}:role/iam-mycompany-mlops-uat-sagemaker-default-execution-role"
+
+# Databricks (if applicable)
+databricks:
+  catalog: "dev"
+  schema: "analytics"
+  workspace_url: "https://CHANGE_ME.cloud.databricks.com"

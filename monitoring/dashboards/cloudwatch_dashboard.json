@@ -1,0 +1,11 @@
+{
+  "Comment": "CloudWatch Dashboard template for ETL pipeline health. Import via AWS console or API.",
+  "widgets": [
+    {"type": "metric", "properties": {"title": "Glue Job Duration", "metrics": [
+      ["Glue", "glue.driver.aggregate.elapsedTime", "JobName", "CHANGE_ME", "Type", "gauge"]], "period": 86400}},
+    {"type": "metric", "properties": {"title": "Glue Job Failures", "metrics": [
+      ["Glue", "glue.driver.aggregate.numFailedTasks", "JobName", "CHANGE_ME"]], "period": 86400}},
+    {"type": "metric", "properties": {"title": "DQ Metrics", "metrics": [
+      ["DataQuality", "row_count", "Table", "CHANGE_ME"]], "period": 86400}}
+  ]
+}

@@ -1,0 +1,112 @@
+{
+    "Comment": "${environment} ${domain} Master Pipeline — Orchestrates Silver → Gold → Consumption → Redshift",
+    "StartAt": "FormatDate",
+    "States": {
+        "FormatDate": {
+            "Type": "Pass",
+            "Parameters": {
+                "dl_date.$": "States.Format('{}-{}-01', States.ArrayGetItem(States.StringSplit($$.Execution.Input.dl_date, '-'), 0), States.ArrayGetItem(States.StringSplit($$.Execution.Input.dl_date, '-'), 1))"
+            },
+            "Next": "RunParallelJobs"
+        },
+        "RunParallelJobs": {
+            "Type": "Parallel",
+            "Branches": [
+                {
+                    "StartAt": "RunSilverGoldJob",
+                    "States": {
+                        "RunSilverGoldJob": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+                            "Parameters": {
+                                "StateMachineArn": "arn:aws:states:${region}:${account_id}:stateMachine:sfn-${project}-${feature}-fw-transformation",
+                                "Input": {
+                                    "job_name": "CHANGE_ME_pipeline",
+                                    "dl_date.$": "$.dl_date"
+                                }
+                            },
+                            "End": true,
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "Next": "SilverGoldFailed"
+                                }
+                            ]
+                        },
+                        "SilverGoldFailed": {
+                            "Type": "Fail",
+                            "Error": "SilverGoldJobFailed",
+                            "Cause": "Silver/Gold job failed"
+                        }
+                    }
+                },
+                {
+                    "StartAt": "RunDimensionJob",
+                    "States": {
+                        "RunDimensionJob": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+                            "Parameters": {
+                                "StateMachineArn": "arn:aws:states:${region}:${account_id}:stateMachine:sfn-${project}-${feature}-fw-transformation",
+                                "Input": {
+                                    "job_name": "CHANGE_ME_dimension_pipeline",
+                                    "dl_date.$": "$.dl_date"
+                                }
+                            },
+                            "End": true,
+                            "Catch": [
+                                {
+                                    "ErrorEquals": ["States.ALL"],
+                                    "Next": "DimensionFailed"
+                                }
+                            ]
+                        },
+                        "DimensionFailed": {
+                            "Type": "Fail",
+                            "Error": "DimensionJobFailed",
+                            "Cause": "Dimension job failed"
+                        }
+                    }
+                }
+            ],
+            "Next": "RunConsumptionJob",
+            "Catch": [
+                {
+                    "ErrorEquals": ["States.ALL"],
+                    "Next": "ParallelJobsFailed"
+                }
+            ]
+        },
+        "RunConsumptionJob": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+            "Parameters": {
+                "StateMachineArn": "arn:aws:states:${region}:${account_id}:stateMachine:sfn-${project}-${feature}-fw-transformation",
+                "Input": {
+                    "job_name": "CHANGE_ME_consumption_pipeline",
+                    "dl_date.$": "$[0].Input.dl_date"
+                }
+            },
+            "Next": "PipelineSuccess",
+            "Catch": [
+                {
+                    "ErrorEquals": ["States.ALL"],
+                    "Next": "ConsumptionFailed"
+                }
+            ]
+        },
+        "PipelineSuccess": {
+            "Type": "Succeed"
+        },
+        "ParallelJobsFailed": {
+            "Type": "Fail",
+            "Error": "ParallelJobsFailed",
+            "Cause": "One or more parallel jobs failed"
+        },
+        "ConsumptionFailed": {
+            "Type": "Fail",
+            "Error": "ConsumptionJobFailed",
+            "Cause": "Consumption job failed"
+        }
+    }
+}

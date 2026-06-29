@@ -1,0 +1,201 @@
+{
+  "Comment": "Dev Mobile Sales Pipeline \u2014 daily (default) and history (mode=history) with split Silver/Gold",
+  "StartAt": "CheckMode",
+  "States": {
+    "CheckMode": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "And": [
+            {
+              "Variable": "$.mode",
+              "IsPresent": true
+            },
+            {
+              "Variable": "$.mode",
+              "StringMatches": "*istory*"
+            }
+          ],
+          "Next": "FormatDateHistory"
+        }
+      ],
+      "Default": "FormatDateDaily"
+    },
+    "FormatDateDaily": {
+      "Type": "Pass",
+      "Parameters": {
+        "dl_date.$": "States.Format('{}-{}-01', States.ArrayGetItem(States.StringSplit($$.Execution.Input.dl_date, '-'), 0), States.ArrayGetItem(States.StringSplit($$.Execution.Input.dl_date, '-'), 1))",
+        "sg_job": "silver_gold_mobile_sales_pipeline",
+        "con_job": "consumption_sales_summary_pipeline"
+      },
+      "Next": "RunParallelJobs"
+    },
+    "FormatDateHistory": {
+      "Type": "Pass",
+      "Parameters": {
+        "dl_date.$": "$.dl_date",
+        "silver_job": "silver_mobile_sales_history_pipeline",
+        "gold_job": "gold_mobile_sales_history_pipeline",
+        "con_job": "consumption_sales_summary_history_pipeline"
+      },
+      "Next": "RunHistorySilver"
+    },
+    "RunParallelJobs": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "RunCellsiteMappingJob",
+          "States": {
+            "RunCellsiteMappingJob": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::states:startExecution.sync:2",
+              "Parameters": {
+                "StateMachineArn": "arn:aws:states:ap-southeast-1:503561443692:stateMachine:sfn-bnic-aii-fw-transformation",
+                "Input": {
+                  "job_name": "silver_cellsite_mapping_pipeline",
+                  "dl_date.$": "$.dl_date"
+                }
+              },
+              "End": true,
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "CellsiteJobFailed",
+                  "ResultPath": "$.error"
+                }
+              ]
+            },
+            "CellsiteJobFailed": {
+              "Type": "Fail",
+              "Error": "CellsiteJobFailed",
+              "Cause": "Silver cellsite mapping job failed"
+            }
+          }
+        },
+        {
+          "StartAt": "RunSilverGoldSalesJob",
+          "States": {
+            "RunSilverGoldSalesJob": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::states:startExecution.sync:2",
+              "Parameters": {
+                "StateMachineArn": "arn:aws:states:ap-southeast-1:503561443692:stateMachine:sfn-bnic-aii-fw-transformation",
+                "Input": {
+                  "job_name.$": "$.sg_job",
+                  "dl_date.$": "$.dl_date"
+                }
+              },
+              "End": true,
+              "Catch": [
+                {
+                  "ErrorEquals": [
+                    "States.ALL"
+                  ],
+                  "Next": "SalesJobFailed",
+                  "ResultPath": "$.error"
+                }
+              ]
+            },
+            "SalesJobFailed": {
+              "Type": "Fail",
+              "Error": "SalesJobFailed",
+              "Cause": "Silver-Gold sales job failed"
+            }
+          }
+        }
+      ],
+      "ResultPath": "$.parallelResults",
+      "Next": "RunConsumptionJob",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "ParallelJobsFailed",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+    "RunHistorySilver": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::states:startExecution.sync:2",
+      "Parameters": {
+        "StateMachineArn": "arn:aws:states:ap-southeast-1:503561443692:stateMachine:sfn-bnic-aii-fw-transformation",
+        "Input": {
+          "job_name.$": "$.silver_job",
+          "dl_date.$": "$.dl_date"
+        }
+      },
+      "ResultPath": "$.silverResult",
+      "Next": "RunHistoryGold",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "ParallelJobsFailed",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+    "RunHistoryGold": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::states:startExecution.sync:2",
+      "Parameters": {
+        "StateMachineArn": "arn:aws:states:ap-southeast-1:503561443692:stateMachine:sfn-bnic-aii-fw-transformation",
+        "Input": {
+          "job_name.$": "$.gold_job",
+          "dl_date.$": "$.dl_date"
+        }
+      },
+      "ResultPath": "$.goldResult",
+      "Next": "RunConsumptionJob",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "ParallelJobsFailed",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+    "RunConsumptionJob": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::states:startExecution.sync:2",
+      "Parameters": {
+        "StateMachineArn": "arn:aws:states:ap-southeast-1:503561443692:stateMachine:sfn-bnic-aii-fw-transformation",
+        "Input": {
+          "job_name.$": "$.con_job",
+          "dl_date.$": "$.dl_date"
+        }
+      },
+      "ResultPath": "$.consumptionResult",
+      "Next": "PipelineSuccess",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "ConsumptionJobFailed",
+          "ResultPath": "$.error"
+        }
+      ]
+    },
+    "ParallelJobsFailed": {
+      "Type": "Fail",
+      "Error": "ParallelJobsFailed",
+      "Cause": "One or more parallel jobs (cellsite or sales) failed"
+    },
+    "ConsumptionJobFailed": {
+      "Type": "Fail",
+      "Error": "ConsumptionJobFailed",
+      "Cause": "Consumption job failed"
+    },
+    "PipelineSuccess": {
+      "Type": "Succeed"
+    }
+  }
+}

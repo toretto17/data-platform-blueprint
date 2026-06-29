@@ -1,0 +1,8 @@
+{
+  "Comment": "Daily ETL trigger at 6PM UTC → master Step Function",
+  "RuleName": "CHANGE_ME-daily-etl",
+  "ScheduleExpression": "cron(0 18 * * ? *)",
+  "State": "ENABLED",
+  "Targets": [{"Id": "sf-target", "Arn": "arn:aws:states:CHANGE_ME:CHANGE_ME:stateMachine:CHANGE_ME-master-pipeline",
+               "RoleArn": "arn:aws:iam::CHANGE_ME:role/eventbridge-sfn-role", "Input": "{\"dl_date\":\"auto\"}"}]
+}
