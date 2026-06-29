@@ -251,20 +251,6 @@ Step 7: Deploy (Terraform / DAB / make deploy-glue)
 
 ---
 
-## 📊 Project Status
-
-See [`ROADMAP.md`](ROADMAP.md) for the full task tracker.
-
-```
-Phases complete: 14/14 (100%)
-Items tracked:   209/209
-Python files:    98
-Documentation:   130 files
-Total:           283 files
-```
-
----
-
 ## 🤝 Contributing
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for conventions, PR workflow, and how to add new templates.
