@@ -30,11 +30,13 @@
 
 ---
 
-[Quick Start](#-quick-start) · [Architecture](#-architecture) · [What's Inside](#-whats-inside) · [How to Use](#-how-to-use) · [Best Practices](#-best-practices)
+[Quick Start](#quick-start) · [Architecture](#architecture) · [What's Inside](#whats-inside) · [How to Use](#how-to-use) · [Best Practices](#best-practices)
 
 </div>
 
 ---
+
+<a id="quick-start"></a>
 
 ## 🚀 Quick Start
 
@@ -62,6 +64,8 @@ databricks bundle deploy -t dev   # Databricks
 ```
 
 ---
+
+<a id="architecture"></a>
 
 ## 🏛️ Architecture
 
@@ -151,6 +155,8 @@ data-platform-blueprint/
 
 ---
 
+<a id="whats-inside"></a>
+
 ## 📦 What's Inside
 
 <details>
@@ -219,6 +225,8 @@ data-platform-blueprint/
 
 ---
 
+<a id="how-to-use"></a>
+
 ## 🛠️ How to Use
 
 ```
@@ -245,6 +253,8 @@ Step 7: Deploy (Terraform / DAB / make deploy-glue)
 | Compare AWS vs Databricks | `docs/architecture/AWS_VS_DATABRICKS_MAPPING.md` |
 
 ---
+
+<a id="best-practices"></a>
 
 ## ✅ Best Practices Enforced
 
