@@ -1,4 +1,5 @@
-# common/logging — AWS
+# 📋 common/logging — AWS — ☁️ AWS
+
 
 `logger.py` provides `get_logger(name)` and `log_metric(logger, name, value, **dims)`.
 
@@ -13,3 +14,8 @@ log_metric(logger, "rows_written", 1234, table="silver_sales")
 ```
 
 Same API as `databricks/src/common/logging/logger.py` — keep in sync.
+
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/common/logging/`

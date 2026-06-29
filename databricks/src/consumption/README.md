@@ -1,4 +1,5 @@
-# Consumption — Databricks
+# 🍽️ Consumption — Databricks — 🧱 Databricks
+
 
 Final reporting/serving layer. Gold → Consumption → Databricks SQL / API.
 
@@ -13,3 +14,8 @@ Final reporting/serving layer. Gold → Consumption → Databricks SQL / API.
 - Lakehouse has no separate warehouse to copy into — Databricks SQL queries Delta/UC directly; "warehouse load" = build the governed serving object.
 - Materialized Views auto-refresh; serving tables use `replaceWhere` for idempotent partition refresh.
 - API auth ON + allow-list. Prefer OAuth/JWT/SSO in prod. Token from secret scope.
+
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/consumption/`

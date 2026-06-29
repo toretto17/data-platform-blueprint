@@ -1,4 +1,5 @@
-# jobs
+# ⚡ jobs — ☁️ AWS
+
 
 Template for building Silver-layer ETL jobs (Raw → Silver).  Handles: source reading, cleansing, dedup, type casting, DQ validation,  partitioned write.
 

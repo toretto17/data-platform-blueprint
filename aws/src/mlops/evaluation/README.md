@@ -1,4 +1,5 @@
-# evaluation
+# 📊 evaluation — ☁️ AWS
+
 
 Evaluate a trained model, produce a metrics report (evaluation.json),  and gate registration (only register if metrics pass thresholds).
 

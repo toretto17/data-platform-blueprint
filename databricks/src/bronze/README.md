@@ -1,4 +1,5 @@
-# Bronze Layer
+# 🥉 Bronze Layer — 🧱 Databricks
+
 
 The **Bronze layer** is the raw landing zone. Data arrives from source systems and is stored **as-is** — no business logic, no cleansing, no deduplication. We add only ingestion lineage columns and append by ingest date so we keep the full raw history. All cleansing/typing/dedup happens later in **Silver**.
 
@@ -95,3 +96,8 @@ Source systems → [BRONZE: raw + lineage, append]
                           → [GOLD: business aggregates]
                               → [CONSUMPTION: reporting / serving]
 ```
+
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/bronze/`

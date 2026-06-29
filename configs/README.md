@@ -1,4 +1,5 @@
-# configs/
+# 📁 configs/
+
 
 Environment-specific configuration. One file per environment.
 

@@ -1,4 +1,4 @@
-# How Registry connects to Inference
+# 🔗 How Registry connects to Inference
 
 ## Databricks
 ```

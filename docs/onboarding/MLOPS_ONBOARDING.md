@@ -1,4 +1,4 @@
-# MLOps Onboarding
+# 🎓 MLOps Onboarding
 
 ## Day 1
 1. Read `README.md` + the MLOps section

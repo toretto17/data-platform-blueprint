@@ -1,4 +1,5 @@
-# experimentation
+# 🧪 experimentation — ☁️ AWS
+
 
 Same helpers as Databricks twin but using SageMaker Experiments or  local MLflow. Optuna for HPO (same as Databricks — portable).
 

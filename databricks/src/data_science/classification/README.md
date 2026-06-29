@@ -1,4 +1,5 @@
-# classification
+# 🏷️ classification — 🧱 Databricks
+
 
 Binary/multi-class classification with Feature Store integration,  hyperparameter tuning (Optuna), cross-validation, and MLflow tracking.
 

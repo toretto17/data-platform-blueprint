@@ -1,4 +1,5 @@
-# Data Engineering Load Patterns (`de_patterns/`)
+# 🔀 Data Engineering Load Patterns (`de_patterns/`) — ☁️ AWS
+
 
 Reusable load-pattern templates. Each has **real working code** with both
 **PySpark API** and **SQL** variants (SQL creates a temp view first, then runs
@@ -51,3 +52,8 @@ Every apply method exists in both forms. The SQL variants always show the
 `CREATE OR REPLACE TEMP VIEW ...` step first so you can copy them straight into a
 Databricks SQL cell / Glue Spark SQL and inspect the staged view before MERGE.
 
+
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/de_patterns/`

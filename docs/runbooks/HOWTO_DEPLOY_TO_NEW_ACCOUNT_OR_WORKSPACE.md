@@ -1,4 +1,4 @@
-# How to: Deploy to a new AWS account or Databricks workspace
+# 🌍 How to: Deploy to a new AWS account or Databricks workspace
 
 ## AWS
 1. Create `configs/<env>/project.yaml` with new account_id, region, bucket names, roles

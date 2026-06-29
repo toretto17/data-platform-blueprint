@@ -1,4 +1,5 @@
-# feature_engineering
+# ⚙️ feature_engineering — ☁️ AWS
+
 
 Same reusable feature computation patterns as Databricks twin, but  writes to a SageMaker Feature Group (via FeatureStoreManager) or  a Glue Catalog table.
 

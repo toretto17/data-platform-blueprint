@@ -1,4 +1,4 @@
-# Architecture Patterns — Extracted from Production
+# 🏛️ Architecture Patterns — Extracted from Production
 
 ## 1. Data Engineering Patterns
 

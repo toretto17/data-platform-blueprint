@@ -1,4 +1,5 @@
-# Business Rules
+# 📁 Business Rules
+
 
 Document your domain's business logic here (per mart / model). Template:
 

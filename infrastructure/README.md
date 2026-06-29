@@ -1,4 +1,5 @@
-# infrastructure/
+# 📁 infrastructure/
+
 
 | Path | Purpose |
 |---|---|

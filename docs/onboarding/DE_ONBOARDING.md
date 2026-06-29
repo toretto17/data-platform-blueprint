@@ -1,4 +1,4 @@
-# Data Engineering Onboarding
+# 🎓 Data Engineering Onboarding
 
 Welcome! Here's how to get productive as a DE on this platform.
 

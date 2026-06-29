@@ -1,4 +1,5 @@
-# Infrastructure — Step Functions, Lambda & DDB Config
+# 📁 Infrastructure — Step Functions, Lambda & DDB Config
+
 
 ## Architecture Flow
 

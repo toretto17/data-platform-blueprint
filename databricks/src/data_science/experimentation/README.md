@@ -1,4 +1,5 @@
-# experimentation
+# 🧪 experimentation — 🧱 Databricks
+
 
 Reusable helpers for experiment management and hyperparameter tuning.  Wraps Optuna + MLflow so DS teams get consistent experiment tracking  without boilerplate.
 

@@ -1,4 +1,5 @@
-# deployment
+# 🚀 deployment — ☁️ AWS
+
 
 Deploy a registered model to production (endpoint OR batch-only) and  provide a safe rollback mechanism if issues are detected post-deploy.
 

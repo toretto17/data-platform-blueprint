@@ -1,4 +1,4 @@
-# How to: Initial load & backfill
+# 🔄 How to: Initial load & backfill
 
 ## Gold layer
 - Set `MODE=overwrite` + `LOOKBACK_DAYS=0` in DDB/DefaultArguments

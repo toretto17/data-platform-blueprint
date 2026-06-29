@@ -1,4 +1,4 @@
-# AWS ↔ Databricks Service Mapping
+# 🔄 AWS ↔ Databricks Service Mapping
 
 | Concept | AWS Service | Databricks Equivalent |
 |---|---|---|

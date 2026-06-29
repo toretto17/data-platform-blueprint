@@ -1,4 +1,5 @@
-# Gold — aws
+# 🥇 Gold — aws — ☁️ AWS
+
 
 Business-ready aggregates (Silver → Gold).
 
@@ -10,3 +11,8 @@ Business-ready aggregates (Silver → Gold).
 Production bug-patterns enforced: window PARTITION BY must include ALL dims;
 dedup group-level cols before SUM; rates = ratio-of-sums (not sum-of-ratios);
 round floats before write.
+
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/gold/`

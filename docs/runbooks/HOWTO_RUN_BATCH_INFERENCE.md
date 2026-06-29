@@ -1,4 +1,4 @@
-# How to: Run batch inference
+# 🎯 How to: Run batch inference
 
 ## Databricks
 ```python

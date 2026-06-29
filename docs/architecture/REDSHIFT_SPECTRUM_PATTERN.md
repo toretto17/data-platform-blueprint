@@ -1,4 +1,4 @@
-# Redshift Spectrum → Local Table: How Data Flows from S3 to Redshift
+# 📊 Redshift Spectrum → Local Table: How Data Flows from S3 to Redshift
 
 ## Architecture
 

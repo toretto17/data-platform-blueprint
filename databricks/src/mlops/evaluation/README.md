@@ -1,4 +1,5 @@
-# evaluation
+# 📊 evaluation — 🧱 Databricks
+
 
 Evaluate a trained model against a holdout / test set, produce a metrics  report, and gate registration (only promote if thresholds are met).
 

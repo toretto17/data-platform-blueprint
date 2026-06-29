@@ -1,4 +1,5 @@
-# validations
+# ✅ validations — ☁️ AWS
+
 
 Reusable DQ checks that run inside Glue jobs or standalone.  Never crashes the pipeline — warns and skips on missing rulesets.
 

@@ -1,4 +1,5 @@
-# validation
+# ✅ validation — 🧱 Databricks
+
 
 Validate a UC feature table's health before serving it to training /  inference. Checks: freshness, null rate on key features, PK uniqueness,  row-count thresholds, distribution drift vs a baseline.
 

@@ -1,4 +1,5 @@
-# forecasting
+# 📈 forecasting — 🧱 Databricks
+
 
 Time-series forecasting with MLflow tracking + Feature Store integration.  Supports Prophet, AutoGluon-TimeSeries, and LightGBM-based approaches.
 

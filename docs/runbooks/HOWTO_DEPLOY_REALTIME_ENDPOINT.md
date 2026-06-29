@@ -1,4 +1,4 @@
-# How to: Deploy a realtime model endpoint
+# 🚀 How to: Deploy a realtime model endpoint
 
 ## Databricks (Model Serving, scale-to-zero)
 ```python

@@ -1,4 +1,4 @@
-# How to: Set up model monitoring
+# 👁️ How to: Set up model monitoring
 
 ## Databricks (Lakehouse Monitor)
 ```sql

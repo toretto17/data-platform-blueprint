@@ -1,4 +1,5 @@
-# common/utils — AWS
+# 🔧 common/utils — AWS — ☁️ AWS
+
 
 - `etl_utils.py` — EarlyExitCheck, MetadataFreshnessManager, write strategies
   (spark_native, glue_catalog, delta, iceberg), partition mgmt. `get_writer(strategy)`.
@@ -8,3 +9,8 @@ Job code imports e.g.:
 ```python
 from aws.src.common.utils.etl_utils import EarlyExitCheck, get_writer
 ```
+
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/common/utils/`

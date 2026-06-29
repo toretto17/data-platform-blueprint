@@ -1,4 +1,5 @@
-# Feature Store
+# 📦 Feature Store — ☁️ AWS
+
 
 Manage ML features: create, compute, write, validate, and serve for training/inference.
 
@@ -42,3 +43,8 @@ Gold/Silver tables → feature_store_job (compute + write) → Feature table
 - `optimizeWrite=true` (fewer S3 objects, less listing overhead).
 - Batch `mode='merge'` (upsert — only rows that changed get rewritten).
 - No dependency on Photon or online stores unless explicitly opted in.
+
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/feature_store/`

@@ -1,4 +1,5 @@
-# Consumption — AWS
+# 🍽️ Consumption — AWS — ☁️ AWS
+
 
 Final reporting/serving layer. Gold → Consumption → BI/API.
 
@@ -14,3 +15,8 @@ Final reporting/serving layer. Gold → Consumption → BI/API.
 - Spectrum reads the Glue Catalog directly — no brittle mirror job.
 - API ships with auth ON + table allow-list (prevents arbitrary access/injection). Prefer API Gateway + Cognito/JWT in prod.
 - Secrets always from Secrets Manager, never hardcoded.
+
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/consumption/`

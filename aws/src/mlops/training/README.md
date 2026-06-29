@@ -1,4 +1,5 @@
-# training
+# 🏋️ training — ☁️ AWS
+
 
 Template for model training pipelines using SageMaker.  Supports: preprocess → train → evaluate → register → promote.
 

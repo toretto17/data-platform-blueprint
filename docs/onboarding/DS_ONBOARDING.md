@@ -1,4 +1,4 @@
-# Data Science Onboarding
+# 🎓 Data Science Onboarding
 
 ## Day 1
 1. Read `README.md` + `docs/architecture/END_TO_END_FLOW.md`

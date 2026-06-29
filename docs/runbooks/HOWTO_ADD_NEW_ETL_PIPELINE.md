@@ -1,4 +1,4 @@
-# How to: Add a new ETL pipeline
+# 🔧 How to: Add a new ETL pipeline
 
 ## Steps
 

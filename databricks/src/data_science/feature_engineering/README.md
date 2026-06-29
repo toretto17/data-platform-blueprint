@@ -1,4 +1,5 @@
-# feature_engineering
+# ⚙️ feature_engineering — 🧱 Databricks
+
 
 Reusable feature computation patterns for ML. Reads raw/silver tables,  computes features (lags, rolling stats, encodings, calendar), writes to  a UC feature table.
 

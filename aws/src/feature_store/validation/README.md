@@ -1,4 +1,5 @@
-# validation
+# ✅ validation — ☁️ AWS
+
 
 Validate a SageMaker Feature Group's offline store (Iceberg/Glue table)  before consuming it for training/inference. Checks PK uniqueness,  null rate, freshness, row count — via Athena queries against
 

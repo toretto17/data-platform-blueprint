@@ -1,4 +1,4 @@
-# How to: Add an SCD Type 2 dimension table
+# 📚 How to: Add an SCD Type 2 dimension table
 
 1. Copy `src/de_patterns/scd_type2.py` from your platform tree
 2. Set `KEYS` (business key), `TRACKED_COLS` (columns that trigger new versions)

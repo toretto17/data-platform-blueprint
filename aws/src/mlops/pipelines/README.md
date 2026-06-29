@@ -1,4 +1,5 @@
-# pipelines
+# 🔗 pipelines — ☁️ AWS
+
 
 Orchestrate the full ML lifecycle as a SageMaker Pipeline:  train → evaluate → (condition gate) → register → (optional deploy)
 

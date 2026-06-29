@@ -1,4 +1,5 @@
-# pipelines
+# 🔗 pipelines — 🧱 Databricks
+
 
 Orchestrate the full ML lifecycle as a Databricks Workflow (multi-task job):  ingest features → train → evaluate → (gate) → register → deploy
 

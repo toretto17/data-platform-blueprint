@@ -1,4 +1,4 @@
-# How to: Add a new ML model (train → register → deploy → monitor)
+# 🤖 How to: Add a new ML model (train → register → deploy → monitor)
 
 ## Steps
 

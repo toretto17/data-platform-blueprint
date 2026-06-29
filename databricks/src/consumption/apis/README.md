@@ -1,4 +1,5 @@
-# apis
+# 🌐 apis — 🧱 Databricks
+
 
 Twin of aws/src/consumption/apis/api_serving.py. Serves curated  consumption data via REST, querying Databricks SQL (a SQL Warehouse)  through the databricks-sql-connector.
 

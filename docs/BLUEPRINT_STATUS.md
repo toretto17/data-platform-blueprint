@@ -1,4 +1,4 @@
-# Blueprint Status — Snapshot Dashboard
+# 📊 Blueprint Status — Snapshot Dashboard
 
 > Quick health check of the enterprise template. For the full task list see [`../ROADMAP.md`](../ROADMAP.md).
 > Last updated: 2026-06-28

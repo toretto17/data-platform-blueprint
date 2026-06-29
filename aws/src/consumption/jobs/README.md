@@ -1,4 +1,5 @@
-# jobs
+# ⚡ jobs — ☁️ AWS
+
 
 Final transformation for reporting/BI consumption.  Handles: cross-domain joins, zero-fill skeleton, Redshift-ready output.
 

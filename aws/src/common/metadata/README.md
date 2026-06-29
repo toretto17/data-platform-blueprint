@@ -1,4 +1,5 @@
-# common/metadata — aws
+# 📊 common/metadata — aws — ☁️ AWS
+
 
 | File | Purpose |
 |---|---|
@@ -7,3 +8,8 @@
 
 Use `audit` for observability/compliance; `freshness` to avoid redundant runs.
 Same API names across platforms.
+
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/common/metadata/`

@@ -1,4 +1,5 @@
-# monitoring/
+# 👁️ monitoring/
+
 
 | Subfolder | Purpose |
 |---|---|

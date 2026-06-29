@@ -1,4 +1,4 @@
-# How Training connects to Registry
+# 🔗 How Training connects to Registry
 
 ## Databricks (UC + MLflow)
 ```

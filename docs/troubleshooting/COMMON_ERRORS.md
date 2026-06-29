@@ -1,4 +1,4 @@
-# Common Errors & Fixes
+# 🐛 Common Errors & Fixes
 
 ## Data Engineering
 

@@ -1,4 +1,4 @@
-# Platform-Specific Gotchas
+# ⚠️ Platform-Specific Gotchas
 
 ## AWS Glue
 - Glue 5.x uses Spark 3.5 — check function compatibility (e.g. `try_cast` not available)

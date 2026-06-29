@@ -1,4 +1,5 @@
-# common/logging — Databricks
+# 📋 common/logging — Databricks — 🧱 Databricks
+
 
 Same API as the AWS logger (`get_logger`, `log_metric`). Output goes to the
 Databricks driver log. `log_metric` also mirrors numeric values to MLflow when
@@ -9,3 +10,8 @@ from databricks.src.common.logging.logger import get_logger, log_metric
 logger = get_logger("silver_sales")
 logger.info("read complete", extra={"rows": 1234, "stage": "read"})
 ```
+
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/common/logging/`

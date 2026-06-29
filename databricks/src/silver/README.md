@@ -1,4 +1,5 @@
-# Silver — databricks
+# 🥈 Silver — databricks — 🧱 Databricks
+
 
 Cleansed, conformed, deduplicated data (Bronze → Silver).
 
@@ -9,3 +10,8 @@ Cleansed, conformed, deduplicated data (Bronze → Silver).
 
 Override `_define_sources`, `_apply_transformations`, `_derive_columns`, `_dq_config`.
 Cleansing/dedup/casting happens HERE (not in Bronze). Delta + Unity Catalog.
+
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/silver/`

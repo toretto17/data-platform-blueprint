@@ -1,4 +1,5 @@
-# Ingestion
+# 📥 Ingestion — 🧱 Databricks
+
 
 Bring external data into the **Bronze** landing zone. Two modes:
 
@@ -22,3 +23,8 @@ Bring external data into the **Bronze** landing zone. Two modes:
 - Secrets never hardcoded (Secrets Manager / secret scopes).
 - Autoloader preferred over plain file streaming for schema evolution + scalability.
 
+
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/ingestion/`

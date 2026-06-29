@@ -1,4 +1,4 @@
-# How to: Set up a Feature Store table
+# 📦 How to: Set up a Feature Store table
 
 ## Databricks
 1. `fe.create_table(name="catalog.schema.features", primary_keys=["id"], df=features_df)`

@@ -1,4 +1,4 @@
-# How Feature Store connects to Training
+# 🔗 How Feature Store connects to Training
 
 ```
 Feature Table (UC / SageMaker FG)

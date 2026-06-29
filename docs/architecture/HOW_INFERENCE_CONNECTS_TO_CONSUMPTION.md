@@ -1,4 +1,4 @@
-# How Inference connects to Consumption
+# 🔗 How Inference connects to Consumption
 
 ```
 Inference output (predictions) → S3/Delta

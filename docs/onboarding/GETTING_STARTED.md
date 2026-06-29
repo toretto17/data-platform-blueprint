@@ -1,4 +1,4 @@
-# Getting Started — Enterprise Data Platform
+# 🚀 Getting Started — Enterprise Data Platform
 
 ## Prerequisites
 

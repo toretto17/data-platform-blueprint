@@ -1,4 +1,5 @@
-# templates/
+# 📁 templates/
+
 
 Starter files for common tasks. These are POINTERS to the full implementations
 in `aws/src/` and `databricks/src/`. Copy the referenced file to your project
