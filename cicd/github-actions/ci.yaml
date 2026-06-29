@@ -1,8 +1,9 @@
-# CI: lint + test on every PR
+# CI: lint + test + terraform validate on every PR
 name: CI
 on:
   pull_request:
     branches: [main, dev]
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -13,3 +14,16 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: make lint
       - run: make test-unit
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive infrastructure/aws/terraform/
+      - name: Terraform Validate
+        working-directory: infrastructure/aws/terraform/workload/etl-pipeline
+        run: |
+          terraform init -backend=false
+          terraform validate
