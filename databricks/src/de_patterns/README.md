@@ -9,6 +9,7 @@ the statement). Pick the pattern that matches your source + history needs.
 
 | File | Pattern | When to use |
 |---|---|---|
+| `advanced_patterns.py` | Reference | All Databricks-specific options: FAILFAST/PERMISSIVE/rescue, Autoloader advanced (schemaEvolutionMode, rate limits, file filters), CDF streaming options (ignoreChanges/Deletes), checkpointing strategies, error handling (rescued data, bad records routing), performance tuning |
 | `full_load.py` | Truncate & reload / snapshot overwrite | Small source, no watermark/CDC, or guaranteed clean rebuild |
 | `incremental_load.py` | Watermark-based append/upsert | Source has a monotonically increasing column (updated_at/id) |
 | `cdc_load.py` | Change Data Capture (Delta CDF / DMS) | Source emits row-level inserts/updates/deletes |
