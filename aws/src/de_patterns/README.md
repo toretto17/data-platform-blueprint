@@ -9,6 +9,7 @@ the statement). Pick the pattern that matches your source + history needs.
 
 | File | Pattern | When to use |
 |---|---|---|
+| `advanced_patterns.py` | Reference | All AWS Glue-specific options: DynamicFrame error handling (stageThreshold/totalThreshold), bounded execution (boundedFiles/boundedSize), Glue-native writers, Iceberg MERGE/time-travel, cost optimization (Flex/G.025X/auto-scaling/warm pools), job bookmarks advanced, catalog integration |
 | `full_load.py` | Truncate & reload / snapshot overwrite | Small source, no watermark/CDC, or guaranteed clean rebuild |
 | `incremental_load.py` | Watermark-based append/upsert | Source has a monotonically increasing column (updated_at/id) |
 | `cdc_load.py` | Change Data Capture (Delta CDF / DMS) | Source emits row-level inserts/updates/deletes |
