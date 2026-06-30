@@ -1,12 +1,15 @@
 # ❄️ snowflake — ☁️ AWS
 
-
-Write a consumption DataFrame to Snowflake using the Spark-Snowflake  connector. Credentials come from Secrets Manager (never hardcoded).
+Write to Snowflake using the Spark connector (overwrite / append / MERGE upsert).
 
 ## Files
 
 - `snowflake_load.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/consumption/snowflake/`
+[📖 HOWTO_CONNECT_SNOWFLAKE](../../docs/runbooks/HOWTO_CONNECT_SNOWFLAKE.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/consumption/snowflake/`

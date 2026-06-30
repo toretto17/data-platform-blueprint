@@ -1,12 +1,15 @@
 # 🧪 experimentation — ☁️ AWS
 
-
-Same helpers as Databricks twin but using SageMaker Experiments or  local MLflow. Optuna for HPO (same as Databricks — portable).
+Experiment tracking + HPO utilities: `quick_tune()`, `OptunaMLflowCallback`, `ExperimentManager`.
 
 ## Files
 
 - `experimentation.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/data_science/experimentation/`
+[📖 HOWTO_HYPERPARAMETER_TUNING](../../docs/runbooks/HOWTO_HYPERPARAMETER_TUNING.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/data_science/experimentation/`

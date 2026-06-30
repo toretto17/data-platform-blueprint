@@ -1,12 +1,15 @@
 # 📡 streaming — 🧱 Databricks
 
-
-Twin of aws/src/ingestion/streaming/stream_ingest.py. Two modes:     • autoloader — incremental cloud-file ingestion (cloudFiles), schema evolution    (recommended for files landing in S3/ADLS/GCS)   
+Continuous ingestion from Kafka/Kinesis/Autoloader → Bronze with checkpointing (exactly-once).
 
 ## Files
 
 - `stream_ingest.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/ingestion/streaming/`
+[📖 HOWTO_SETUP_STREAMING](../../docs/runbooks/HOWTO_SETUP_STREAMING.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/ingestion/streaming/`

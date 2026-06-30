@@ -1,12 +1,15 @@
 # 🏛️ warehouse — 🧱 Databricks
 
-
-Twin of aws/src/consumption/warehouse/warehouse_load.py. Prepares the  consumption layer for BI on Databricks SQL. Two serving options:     • serving_table      : a curated Delta table (BI queries it 
+Load data into Redshift (Spectrum→native pattern) or Databricks SQL (serving table / materialized view).
 
 ## Files
 
 - `warehouse_load.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/consumption/warehouse/`
+[📖 HOWTO_DEPLOY_API](../../docs/runbooks/HOWTO_DEPLOY_API.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/consumption/warehouse/`

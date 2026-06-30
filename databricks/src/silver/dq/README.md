@@ -1,10 +1,15 @@
 # 🧪 dq — 🧱 Databricks
 
+Silver-layer DQ config: PK not null + data freshness.
 
 ## Files
 
 - `silver_dq.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/silver/dq/`
+[📖 HOWTO_SETUP_DQ_CHECKS](../../docs/runbooks/HOWTO_SETUP_DQ_CHECKS.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/silver/dq/`

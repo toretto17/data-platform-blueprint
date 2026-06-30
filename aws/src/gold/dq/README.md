@@ -1,10 +1,15 @@
 # 🧪 dq — ☁️ AWS
 
+Gold-layer DQ config: business rules (no negatives) + reconciliation vs Silver.
 
 ## Files
 
 - `gold_dq.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/gold/dq/`
+[📖 HOWTO_SETUP_DQ_CHECKS](../../docs/runbooks/HOWTO_SETUP_DQ_CHECKS.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/gold/dq/`

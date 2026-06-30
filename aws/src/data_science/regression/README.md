@@ -1,12 +1,15 @@
 # 📉 regression — ☁️ AWS
 
-
-Regression with Optuna HPO, multi-model comparison, SHAP explainability.  Runs as a SageMaker Processing/Training job.
+Regression with model comparison leaderboard (GBR/RF/XGB), Optuna, SHAP.
 
 ## Files
 
 - `regression.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/data_science/regression/`
+[📖 HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/data_science/regression/`

@@ -1,12 +1,15 @@
 # ✅ validation — ☁️ AWS
 
-
-Validate a SageMaker Feature Group's offline store (Iceberg/Glue table)  before consuming it for training/inference. Checks PK uniqueness,  null rate, freshness, row count — via Athena queries against
+DQ checks on feature tables: PK uniqueness, null rate, freshness.
 
 ## Files
 
 - `feature_store_validation.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/feature_store/validation/`
+[📖 HOWTO_SETUP_DQ_CHECKS](../../docs/runbooks/HOWTO_SETUP_DQ_CHECKS.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/feature_store/validation/`

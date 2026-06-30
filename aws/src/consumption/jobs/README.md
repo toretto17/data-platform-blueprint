@@ -1,12 +1,11 @@
 # ⚡ jobs — ☁️ AWS
 
-
-Final transformation for reporting/BI consumption.  Handles: cross-domain joins, zero-fill skeleton, Redshift-ready output.
+Consumption ETL: Gold → reporting table. Supports INITIAL_LOAD (full history) + daily incremental.
 
 ## Files
 
 - `consumption_job.py`
 
-## Platform twin
+---
 
-`./databricks/src/consumption/jobs/`
+> 🔄 **Platform twin:** `./databricks/src/consumption/jobs/`

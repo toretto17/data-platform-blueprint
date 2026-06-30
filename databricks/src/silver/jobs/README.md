@@ -1,12 +1,11 @@
 # ⚡ jobs — 🧱 Databricks
 
-
-Databricks twin of aws/src/silver/jobs/silver_job.py (Raw/Bronze → Silver).  Same Base*Job shape and override points so logic is portable; only the  engine differs (Delta + UC instead of Glue Catalog 
+Silver ETL: cleanse, dedup, type-cast, derive columns. DQ validated before write.
 
 ## Files
 
 - `silver_job.py`
 
-## Platform twin
+---
 
-`./aws/src/silver/jobs/`
+> 🔄 **Platform twin:** `./aws/src/silver/jobs/`

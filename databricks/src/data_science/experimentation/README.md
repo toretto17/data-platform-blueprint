@@ -1,12 +1,15 @@
 # 🧪 experimentation — 🧱 Databricks
 
-
-Reusable helpers for experiment management and hyperparameter tuning.  Wraps Optuna + MLflow so DS teams get consistent experiment tracking  without boilerplate.
+Experiment tracking + HPO utilities: `quick_tune()`, `OptunaMLflowCallback`, `ExperimentManager`.
 
 ## Files
 
 - `experimentation.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/data_science/experimentation/`
+[📖 HOWTO_HYPERPARAMETER_TUNING](../../docs/runbooks/HOWTO_HYPERPARAMETER_TUNING.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/data_science/experimentation/`

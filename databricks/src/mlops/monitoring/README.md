@@ -1,12 +1,23 @@
 # 👁️ monitoring — 🧱 Databricks
 
-
-Monitor a deployed model for data drift and prediction drift. Uses  Databricks Lakehouse Monitoring (UC-native) where available, with a  fallback manual PSI/KS implementation for any cluster.
+Detect data drift + model degradation. PSI/KS metrics + managed monitoring.
 
 ## Files
 
 - `monitoring.py`
 
-## Platform twin
+## Quick usage
 
-`./aws/src/mlops/monitoring/`
+```python
+detector = ManualDriftDetector(cfg)
+results = detector.detect(baseline_df, current_df)
+# results: {"feat1": {"psi": 0.05, "drifted": False}, ...}
+```
+
+## Related runbook
+
+[📖 Full guide: HOWTO_SETUP_MODEL_MONITORING](../../docs/runbooks/HOWTO_SETUP_MODEL_MONITORING.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/mlops/monitoring/`

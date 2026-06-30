@@ -1,12 +1,24 @@
 # 🏋️ training — ☁️ AWS
 
-
-Template for model training pipelines using SageMaker.  Supports: preprocess → train → evaluate → register → promote.
+Train ML models with Feature Store integration, evaluation gate, and auto-registration.
 
 ## Files
 
 - `training_pipeline.py`
 
-## Platform twin
+## Quick usage
 
-`./databricks/src/mlops/training/`
+```python
+# Quick usage:
+from aws.src.mlops.training.training_pipeline import ModelTrainerAWS
+trainer = ModelTrainerAWS(cfg)
+trainer.run()  # → loads FS features → trains → evaluates → registers if passes gate
+```
+
+## Related runbook
+
+[📖 Full guide: HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/mlops/training/`

@@ -1,12 +1,15 @@
 # ⚙️ feature_engineering — 🧱 Databricks
 
-
-Reusable feature computation patterns for ML. Reads raw/silver tables,  computes features (lags, rolling stats, encodings, calendar), writes to  a UC feature table.
+Feature computation: lags, rolling stats (7/30/90d), calendar features, cyclical encoding.
 
 ## Files
 
 - `feature_engineering.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/data_science/feature_engineering/`
+[📖 HOWTO_SETUP_FEATURE_STORE](../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/data_science/feature_engineering/`

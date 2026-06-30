@@ -1,12 +1,15 @@
 # 📦 batch — ☁️ AWS
 
-
-Pull a batch source (S3 files OR JDBC database) into the Bronze landing  zone. Thin wrapper that feeds the Bronze job; keeps source-connection  concerns (JDBC, partitioned reads, secrets) in one place
+Pull data from S3 files or JDBC databases into Bronze. Credentials from Secrets Manager / secret scopes.
 
 ## Files
 
 - `batch_ingest.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/ingestion/batch/`
+[📖 HOWTO_SETUP_BATCH_INGESTION](../../docs/runbooks/HOWTO_SETUP_BATCH_INGESTION.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/ingestion/batch/`

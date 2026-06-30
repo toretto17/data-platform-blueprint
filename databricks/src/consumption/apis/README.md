@@ -1,12 +1,15 @@
 # 🌐 apis — 🧱 Databricks
 
-
-Twin of aws/src/consumption/apis/api_serving.py. Serves curated  consumption data via REST, querying Databricks SQL (a SQL Warehouse)  through the databricks-sql-connector.
+REST API serving consumption data (FastAPI + auth + pagination + filtering + custom SQL).
 
 ## Files
 
 - `api_serving.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/consumption/apis/`
+[📖 HOWTO_DEPLOY_API](../../docs/runbooks/HOWTO_DEPLOY_API.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/consumption/apis/`

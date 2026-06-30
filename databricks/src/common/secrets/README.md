@@ -1,9 +1,9 @@
 # 🔒 common/secrets — databricks — 🧱 Databricks
 
+Fetch credentials safely. Never hardcode. AWS: Secrets Manager + SSM. Databricks: secret scopes.
 
-Single helper to fetch credentials — never hardcode.
+## Files
 
-`Secrets`: `get(scope, key)` / `get_many(scope, keys)` (Databricks secret scopes via dbutils).
 
 
 ---

@@ -6,11 +6,11 @@
 
 *Clone it. Fill the placeholders. Ship your data platform.*
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://python.org)
-[![Spark 3.5](https://img.shields.io/badge/Spark-3.5-E25A1C.svg?logo=apachespark&logoColor=white)](https://spark.apache.org)
-[![AWS](https://img.shields.io/badge/AWS-Glue%20|%20SageMaker-FF9900.svg?logo=amazonaws&logoColor=white)](#)
-[![Databricks](https://img.shields.io/badge/Databricks-UC%20|%20MLflow-FF3621.svg?logo=databricks&logoColor=white)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://docs.python.org/3.11/)
+[![Spark 3.5](https://img.shields.io/badge/Spark-3.5-E25A1C.svg?logo=apachespark&logoColor=white)](https://spark.apache.org/docs/latest/)
+[![AWS](https://img.shields.io/badge/AWS-Glue%20|%20SageMaker-FF9900.svg?logo=amazonaws&logoColor=white)](https://docs.aws.amazon.com/glue/latest/dg/)
+[![Databricks](https://img.shields.io/badge/Databricks-UC%20|%20MLflow-FF3621.svg?logo=databricks&logoColor=white)](https://docs.databricks.com/)
 
 <br/>
 

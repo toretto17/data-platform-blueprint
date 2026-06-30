@@ -1,12 +1,15 @@
 # ❄️ snowflake — 🧱 Databricks
 
-
-Twin of aws/src/consumption/snowflake/snowflake_load.py. Same Spark  Snowflake connector; credentials from a Databricks secret scope.
+Write to Snowflake using the Spark connector (overwrite / append / MERGE upsert).
 
 ## Files
 
 - `snowflake_load.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/consumption/snowflake/`
+[📖 HOWTO_CONNECT_SNOWFLAKE](../../docs/runbooks/HOWTO_CONNECT_SNOWFLAKE.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/consumption/snowflake/`

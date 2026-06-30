@@ -1,12 +1,23 @@
 # 🔗 pipelines — 🧱 Databricks
 
-
-Orchestrate the full ML lifecycle as a Databricks Workflow (multi-task job):  ingest features → train → evaluate → (gate) → register → deploy
+End-to-end ML pipeline orchestration (train → eval → register → deploy in one DAG).
 
 ## Files
 
 - `ml_pipeline.py`
 
-## Platform twin
+## Quick usage
 
-`./aws/src/mlops/pipelines/`
+```python
+# Creates/updates the pipeline definition, then triggers a run
+pipeline = build_pipeline()
+pipeline.start()
+```
+
+## Related runbook
+
+[📖 Full guide: HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/mlops/pipelines/`

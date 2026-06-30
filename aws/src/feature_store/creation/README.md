@@ -1,12 +1,15 @@
 # 🏗️ creation — ☁️ AWS
 
-
-Manage a SageMaker Feature Group (the AWS Feature Store unit). Create  it (Iceberg offline store), describe/wait, and read features back for  training/inference via Athena (offline store) — verified a
+Create + manage Feature Groups (SageMaker) or UC feature tables (Databricks).
 
 ## Files
 
 - `feature_group.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/feature_store/creation/`
+[📖 HOWTO_SETUP_FEATURE_STORE](../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/feature_store/creation/`

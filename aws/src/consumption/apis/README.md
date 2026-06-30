@@ -1,12 +1,15 @@
 # 🌐 apis — ☁️ AWS
 
-
-Expose curated consumption data as a REST API for apps/services.  Queries Athena (consumption Glue tables) and returns JSON.
+REST API serving consumption data (FastAPI + auth + pagination + filtering + custom SQL).
 
 ## Files
 
 - `api_serving.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/consumption/apis/`
+[📖 HOWTO_DEPLOY_API](../../docs/runbooks/HOWTO_DEPLOY_API.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/consumption/apis/`

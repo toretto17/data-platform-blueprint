@@ -1,12 +1,11 @@
 # ✅ validations — 🧱 Databricks
 
-
-Databricks twin of aws/src/common/validations/dq_framework.py.  SAME public API (DQConfig / DQCheck / DataQualityFramework.validate)  so job code is identical across platforms. Implemented Spark-nativ
+DQ framework with 6 real checks (row_count, completeness, schema, freshness, business_rule, reconciliation). Warn+skip pattern.
 
 ## Files
 
 - `dq_framework.py`
 
-## Platform twin
+---
 
-`./aws/src/common/validations/`
+> 🔄 **Platform twin:** `./aws/src/common/validations/`

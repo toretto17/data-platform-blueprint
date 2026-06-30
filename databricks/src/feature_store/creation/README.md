@@ -1,12 +1,15 @@
 # 🏗️ creation — 🧱 Databricks
 
-
-Manage a Unity Catalog feature table. In Databricks, ANY Delta table with  a primary key constraint is a feature table — no special "Feature Group"  entity needed. The `FeatureEngineeringClient` wraps
+Create + manage Feature Groups (SageMaker) or UC feature tables (Databricks).
 
 ## Files
 
 - `feature_group.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/feature_store/creation/`
+[📖 HOWTO_SETUP_FEATURE_STORE](../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/feature_store/creation/`

@@ -1,12 +1,11 @@
 # ⚡ jobs — ☁️ AWS
 
-
-Template for building Bronze-layer ETL jobs (Raw source → Bronze).  Bronze = the raw landing zone. We keep data AS-IS (no business logic),  add ingestion lineage columns, and append by ingest date so 
+Bronze ETL: raw source → append-only landing with lineage columns. No business logic — just land + stamp.
 
 ## Files
 
 - `bronze_job.py`
 
-## Platform twin
+---
 
-`./databricks/src/bronze/jobs/`
+> 🔄 **Platform twin:** `./databricks/src/bronze/jobs/`

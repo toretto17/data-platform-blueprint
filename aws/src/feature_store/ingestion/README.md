@@ -1,12 +1,15 @@
 # 📥 ingestion — ☁️ AWS
 
-
-Ingest Gold-layer features into SageMaker Feature Store via Spark connector.  Supports backfill, incremental, and freshness-guarded ingestion.
+Scheduled feature computation + write (batch/streaming, freshness guard).
 
 ## Files
 
 - `feature_store_job.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/feature_store/ingestion/`
+[📖 HOWTO_SETUP_FEATURE_STORE](../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/feature_store/ingestion/`

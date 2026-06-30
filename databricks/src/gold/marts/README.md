@@ -1,12 +1,11 @@
 # 🥇 marts — 🧱 Databricks
 
-
-Databricks twin of aws/src/gold/marts/gold_job.py (Silver → Gold).  Business aggregations, window/period aggregates (MTD/YTD/WTD),  comparison periods (MoM/YoY), zero-fill, round, write.
+Gold ETL: aggregations, window functions (MTD/YTD), zero-fill, comparison periods, round floats.
 
 ## Files
 
 - `gold_job.py`
 
-## Platform twin
+---
 
-`./aws/src/gold/marts/`
+> 🔄 **Platform twin:** `./aws/src/gold/marts/`

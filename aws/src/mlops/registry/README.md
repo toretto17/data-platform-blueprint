@@ -1,12 +1,23 @@
 # 📋 registry — ☁️ AWS
 
-
-Register a model package in a SageMaker Model Package Group, approve it  (triggers monitoring setup), and retrieve the latest approved model.
+Register model versions + promote (Champion/Challenger). Source of truth for production models.
 
 ## Files
 
 - `registry.py`
 
-## Platform twin
+## Quick usage
 
-`./databricks/src/mlops/registry/`
+```python
+reg = ModelRegistryAWS(cfg)
+reg.register(run_id="abc123")
+reg.promote_to_champion("3")
+```
+
+## Related runbook
+
+[📖 Full guide: HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/mlops/registry/`

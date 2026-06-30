@@ -1,12 +1,15 @@
 # ⚙️ feature_engineering — ☁️ AWS
 
-
-Same reusable feature computation patterns as Databricks twin, but  writes to a SageMaker Feature Group (via FeatureStoreManager) or  a Glue Catalog table.
+Feature computation: lags, rolling stats (7/30/90d), calendar features, cyclical encoding.
 
 ## Files
 
 - `feature_engineering.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/data_science/feature_engineering/`
+[📖 HOWTO_SETUP_FEATURE_STORE](../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/data_science/feature_engineering/`

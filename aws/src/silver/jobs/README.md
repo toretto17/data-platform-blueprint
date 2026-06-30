@@ -1,12 +1,11 @@
 # ⚡ jobs — ☁️ AWS
 
-
-Template for building Silver-layer ETL jobs (Raw → Silver).  Handles: source reading, cleansing, dedup, type casting, DQ validation,  partitioned write.
+Silver ETL: cleanse, dedup, type-cast, derive columns. DQ validated before write.
 
 ## Files
 
 - `silver_job.py`
 
-## Platform twin
+---
 
-`./databricks/src/silver/jobs/`
+> 🔄 **Platform twin:** `./databricks/src/silver/jobs/`

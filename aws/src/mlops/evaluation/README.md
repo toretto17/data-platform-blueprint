@@ -1,12 +1,22 @@
 # 📊 evaluation — ☁️ AWS
 
-
-Evaluate a trained model, produce a metrics report (evaluation.json),  and gate registration (only register if metrics pass thresholds).
+Evaluate a model against holdout data. Threshold gate blocks bad models from production.
 
 ## Files
 
 - `evaluate.py`
 
-## Platform twin
+## Quick usage
 
-`./databricks/src/mlops/evaluation/`
+```python
+evaluator = ModelEvaluatorAWS(cfg)
+result = evaluator.run()  # → {"metrics": {...}, "passed": True/False}
+```
+
+## Related runbook
+
+[📖 Full guide: HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/mlops/evaluation/`

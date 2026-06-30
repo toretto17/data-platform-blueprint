@@ -1,10 +1,15 @@
 # 🧪 dq — ☁️ AWS
 
+Bronze-layer DQ config: lineage columns present + populated.
 
 ## Files
 
 - `bronze_dq.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/bronze/dq/`
+[📖 HOWTO_SETUP_DQ_CHECKS](../../docs/runbooks/HOWTO_SETUP_DQ_CHECKS.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/bronze/dq/`

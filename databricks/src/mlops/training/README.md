@@ -1,12 +1,24 @@
 # 🏋️ training — 🧱 Databricks
 
-
-Template for training an ML model on features from the Feature Store,  logging it with MLflow (auto lineage), and optionally registering in UC.
+Train ML models with Feature Store integration, evaluation gate, and auto-registration.
 
 ## Files
 
 - `training_pipeline.py`
 
-## Platform twin
+## Quick usage
 
-`./aws/src/mlops/training/`
+```python
+# Quick usage:
+from databricks.src.mlops.training.training_pipeline import ModelTrainerDatabricks
+trainer = ModelTrainerDatabricks(cfg)
+trainer.run()  # → loads FS features → trains → evaluates → registers if passes gate
+```
+
+## Related runbook
+
+[📖 Full guide: HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/mlops/training/`

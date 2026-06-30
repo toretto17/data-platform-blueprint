@@ -1,12 +1,15 @@
 # 📈 forecasting — 🧱 Databricks
 
-
-Time-series forecasting with MLflow tracking + Feature Store integration.  Supports Prophet, AutoGluon-TimeSeries, and LightGBM-based approaches.
+Time-series forecasting (Prophet + LightGBM). Temporal split, multi-model, MAPE/SMAPE/RMSE.
 
 ## Files
 
 - `forecasting.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/data_science/forecasting/`
+[📖 HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md) · [📖 HPO guide](../../docs/runbooks/HOWTO_HYPERPARAMETER_TUNING.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/data_science/forecasting/`

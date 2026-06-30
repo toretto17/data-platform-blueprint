@@ -1,12 +1,15 @@
 # 🏷️ classification — 🧱 Databricks
 
-
-Binary/multi-class classification with Feature Store integration,  hyperparameter tuning (Optuna), cross-validation, and MLflow tracking.
+Binary/multi-class classification with Optuna HPO, stratified CV, SHAP explainability.
 
 ## Files
 
 - `classification.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/data_science/classification/`
+[📖 HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md) · [📖 HPO guide](../../docs/runbooks/HOWTO_HYPERPARAMETER_TUNING.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/data_science/classification/`

@@ -1,12 +1,15 @@
 # 🏛️ warehouse — ☁️ AWS
 
-
-Load a consumption table (Parquet on S3, registered in Glue Catalog)  into Amazon Redshift for BI. Implements the production "Spectrum → native"  pattern (no data copy script needed — Spectrum reads t
+Load data into Redshift (Spectrum→native pattern) or Databricks SQL (serving table / materialized view).
 
 ## Files
 
 - `warehouse_load.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/consumption/warehouse/`
+[📖 HOWTO_DEPLOY_API](../../docs/runbooks/HOWTO_DEPLOY_API.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/consumption/warehouse/`

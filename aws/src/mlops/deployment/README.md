@@ -1,12 +1,25 @@
 # 🚀 deployment — ☁️ AWS
 
-
-Deploy a registered model to production (endpoint OR batch-only) and  provide a safe rollback mechanism if issues are detected post-deploy.
+Deploy models safely: canary (traffic split) with instant rollback.
 
 ## Files
 
 - `deployment.py`
 
-## Platform twin
+## Quick usage
 
-`./databricks/src/mlops/deployment/`
+```python
+deployer = ModelDeploymentAWS(cfg)
+deployer.deploy_canary()     # 10% new model
+# monitor... then:
+deployer.promote_canary()    # 100% new
+# OR: deployer.rollback()   # instant revert
+```
+
+## Related runbook
+
+[📖 Full guide: HOWTO_DEPLOY_REALTIME_ENDPOINT](../../docs/runbooks/HOWTO_DEPLOY_REALTIME_ENDPOINT.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/mlops/deployment/`

@@ -1,12 +1,15 @@
 # 🚨 anomaly_detection — ☁️ AWS
 
-
-Template for time-series anomaly detection projects.  Pattern: Statistical baselines → ML model → threshold-based scoring.
+Unsupervised anomaly detection (IsolationForest per segment), scores normalized [0,1].
 
 ## Files
 
 - `anomaly_detection.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/data_science/anomaly_detection/`
+[📖 HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/data_science/anomaly_detection/`

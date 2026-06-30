@@ -1,12 +1,15 @@
 # 📡 streaming — ☁️ AWS
 
-
-Consume a streaming source (Kinesis or Kafka/MSK) and append to Bronze  (Parquet/Delta on S3) using Spark Structured Streaming with a checkpoint  for exactly-once processing.
+Continuous ingestion from Kafka/Kinesis/Autoloader → Bronze with checkpointing (exactly-once).
 
 ## Files
 
 - `stream_ingest.py`
 
-## Platform twin
+## Related runbook
 
-`./databricks/src/ingestion/streaming/`
+[📖 HOWTO_SETUP_STREAMING](../../docs/runbooks/HOWTO_SETUP_STREAMING.md)
+
+---
+
+> 🔄 **Platform twin:** `./databricks/src/ingestion/streaming/`

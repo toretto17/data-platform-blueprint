@@ -1,9 +1,9 @@
 # 🔒 common/secrets — aws — ☁️ AWS
 
+Fetch credentials safely. Never hardcode. AWS: Secrets Manager + SSM. Databricks: secret scopes.
 
-Single helper to fetch credentials — never hardcode.
+## Files
 
-`Secrets`: `get_json(id)` / `get_secret_string(id)` (Secrets Manager), `get_string(name)` (SSM SecureString).
 
 
 ---

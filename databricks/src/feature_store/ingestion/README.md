@@ -1,12 +1,15 @@
 # 📥 ingestion — 🧱 Databricks
 
-
-Scheduled job that computes features from upstream tables (e.g. Gold)  and writes them to a UC feature table. Supports:    • Batch mode (compute all / lookback window, then fe.write_table)    • Stream
+Scheduled feature computation + write (batch/streaming, freshness guard).
 
 ## Files
 
 - `feature_store_job.py`
 
-## Platform twin
+## Related runbook
 
-`./aws/src/feature_store/ingestion/`
+[📖 HOWTO_SETUP_FEATURE_STORE](../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
+
+---
+
+> 🔄 **Platform twin:** `./aws/src/feature_store/ingestion/`
