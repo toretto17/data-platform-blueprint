@@ -8,7 +8,7 @@ Load data into Redshift (Spectrum→native pattern) or Databricks SQL (serving t
 
 ## Related runbook
 
-[📖 HOWTO_DEPLOY_API](../../docs/runbooks/HOWTO_DEPLOY_API.md)
+[📖 HOWTO_DEPLOY_API](../../../../docs/runbooks/HOWTO_DEPLOY_API.md)
 
 ---
 

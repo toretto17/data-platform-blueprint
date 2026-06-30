@@ -18,7 +18,7 @@ deployer.promote_canary()    # 100% new
 
 ## Related runbook
 
-[📖 Full guide: HOWTO_DEPLOY_REALTIME_ENDPOINT](../../docs/runbooks/HOWTO_DEPLOY_REALTIME_ENDPOINT.md)
+[📖 Full guide: HOWTO_DEPLOY_REALTIME_ENDPOINT](../../../../docs/runbooks/HOWTO_DEPLOY_REALTIME_ENDPOINT.md)
 
 ---
 

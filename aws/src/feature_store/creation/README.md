@@ -8,7 +8,7 @@ Create + manage Feature Groups (SageMaker) or UC feature tables (Databricks).
 
 ## Related runbook
 
-[📖 HOWTO_SETUP_FEATURE_STORE](../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
+[📖 HOWTO_SETUP_FEATURE_STORE](../../../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
 
 ---
 

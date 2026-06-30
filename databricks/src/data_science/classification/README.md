@@ -8,7 +8,7 @@ Binary/multi-class classification with Optuna HPO, stratified CV, SHAP explainab
 
 ## Related runbook
 
-[📖 HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md) · [📖 HPO guide](../../docs/runbooks/HOWTO_HYPERPARAMETER_TUNING.md)
+[📖 HOWTO_ADD_NEW_MODEL](../../../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md) · [📖 HPO guide](../../../../docs/runbooks/HOWTO_HYPERPARAMETER_TUNING.md)
 
 ---
 

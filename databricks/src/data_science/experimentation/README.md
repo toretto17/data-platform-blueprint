@@ -8,7 +8,7 @@ Experiment tracking + HPO utilities: `quick_tune()`, `OptunaMLflowCallback`, `Ex
 
 ## Related runbook
 
-[📖 HOWTO_HYPERPARAMETER_TUNING](../../docs/runbooks/HOWTO_HYPERPARAMETER_TUNING.md)
+[📖 HOWTO_HYPERPARAMETER_TUNING](../../../../docs/runbooks/HOWTO_HYPERPARAMETER_TUNING.md)
 
 ---
 

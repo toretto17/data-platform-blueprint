@@ -8,7 +8,7 @@ Scheduled feature computation + write (batch/streaming, freshness guard).
 
 ## Related runbook
 
-[📖 HOWTO_SETUP_FEATURE_STORE](../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
+[📖 HOWTO_SETUP_FEATURE_STORE](../../../../docs/runbooks/HOWTO_SETUP_FEATURE_STORE.md)
 
 ---
 

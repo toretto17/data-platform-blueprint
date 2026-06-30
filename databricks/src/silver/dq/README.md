@@ -8,7 +8,7 @@ Silver-layer DQ config: PK not null + data freshness.
 
 ## Related runbook
 
-[📖 HOWTO_SETUP_DQ_CHECKS](../../docs/runbooks/HOWTO_SETUP_DQ_CHECKS.md)
+[📖 HOWTO_SETUP_DQ_CHECKS](../../../../docs/runbooks/HOWTO_SETUP_DQ_CHECKS.md)
 
 ---
 

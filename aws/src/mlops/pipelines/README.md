@@ -16,7 +16,7 @@ pipeline.start()
 
 ## Related runbook
 
-[📖 Full guide: HOWTO_ADD_NEW_MODEL](../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md)
+[📖 Full guide: HOWTO_ADD_NEW_MODEL](../../../../docs/runbooks/HOWTO_ADD_NEW_MODEL.md)
 
 ---
 

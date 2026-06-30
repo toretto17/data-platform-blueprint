@@ -8,7 +8,7 @@ Write to Snowflake using the Spark connector (overwrite / append / MERGE upsert)
 
 ## Related runbook
 
-[📖 HOWTO_CONNECT_SNOWFLAKE](../../docs/runbooks/HOWTO_CONNECT_SNOWFLAKE.md)
+[📖 HOWTO_CONNECT_SNOWFLAKE](../../../../docs/runbooks/HOWTO_CONNECT_SNOWFLAKE.md)
 
 ---
 

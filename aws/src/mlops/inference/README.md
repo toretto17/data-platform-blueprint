@@ -20,7 +20,7 @@ endpoint.create_or_update()
 
 ## Related runbook
 
-[📖 Batch guide](../../docs/runbooks/HOWTO_RUN_BATCH_INFERENCE.md) · [📖 Realtime guide](../../docs/runbooks/HOWTO_DEPLOY_REALTIME_ENDPOINT.md)
+[📖 Batch guide](../../../../docs/runbooks/HOWTO_RUN_BATCH_INFERENCE.md) · [📖 Realtime guide](../../../../docs/runbooks/HOWTO_DEPLOY_REALTIME_ENDPOINT.md)
 
 ---
 

@@ -8,7 +8,7 @@ Continuous ingestion from Kafka/Kinesis/Autoloader → Bronze with checkpointing
 
 ## Related runbook
 
-[📖 HOWTO_SETUP_STREAMING](../../docs/runbooks/HOWTO_SETUP_STREAMING.md)
+[📖 HOWTO_SETUP_STREAMING](../../../../docs/runbooks/HOWTO_SETUP_STREAMING.md)
 
 ---
 

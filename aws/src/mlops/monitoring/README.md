@@ -16,7 +16,7 @@ results = detector.detect(baseline_df, current_df)
 
 ## Related runbook
 
-[📖 Full guide: HOWTO_SETUP_MODEL_MONITORING](../../docs/runbooks/HOWTO_SETUP_MODEL_MONITORING.md)
+[📖 Full guide: HOWTO_SETUP_MODEL_MONITORING](../../../../docs/runbooks/HOWTO_SETUP_MODEL_MONITORING.md)
 
 ---
 

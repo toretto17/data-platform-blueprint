@@ -8,7 +8,7 @@ REST API serving consumption data (FastAPI + auth + pagination + filtering + cus
 
 ## Related runbook
 
-[📖 HOWTO_DEPLOY_API](../../docs/runbooks/HOWTO_DEPLOY_API.md)
+[📖 HOWTO_DEPLOY_API](../../../../docs/runbooks/HOWTO_DEPLOY_API.md)
 
 ---
 

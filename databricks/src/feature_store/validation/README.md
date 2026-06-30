@@ -8,7 +8,7 @@ DQ checks on feature tables: PK uniqueness, null rate, freshness.
 
 ## Related runbook
 
-[📖 HOWTO_SETUP_DQ_CHECKS](../../docs/runbooks/HOWTO_SETUP_DQ_CHECKS.md)
+[📖 HOWTO_SETUP_DQ_CHECKS](../../../../docs/runbooks/HOWTO_SETUP_DQ_CHECKS.md)
 
 ---
 
