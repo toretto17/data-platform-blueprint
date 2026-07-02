@@ -40,9 +40,10 @@ spark = SparkSession.builder.getOrCreate()
 # ============================================================================
 
 def lag_features(df: DataFrame, partition_cols: List[str], order_col: str,
-                 value_cols: List[str], lags: List[int] = [1, 7, 30]) -> DataFrame:
+                 value_cols: List[str], lags: Optional[List[int]] = None) -> DataFrame:
     """Add lag columns (e.g. value_lag_1, value_lag_7, value_lag_30).
     Window: no future leakage (ordered by order_col, partitioned by partition_cols)."""
+    lags = lags or [1, 7, 30]
     w = Window.partitionBy(*partition_cols).orderBy(order_col)
     for col in value_cols:
         for lag in lags:
@@ -51,9 +52,10 @@ def lag_features(df: DataFrame, partition_cols: List[str], order_col: str,
 
 
 def rolling_stats(df: DataFrame, partition_cols: List[str], order_col: str,
-                  value_cols: List[str], windows: List[int] = [7, 30, 90]) -> DataFrame:
+                  value_cols: List[str], windows: Optional[List[int]] = None) -> DataFrame:
     """Add rolling mean/std/cv over each window size.
     Window: ROWS BETWEEN (window-1) PRECEDING AND CURRENT ROW (no future leakage)."""
+    windows = windows or [7, 30, 90]
     for col in value_cols:
         for win in windows:
             w = (Window.partitionBy(*partition_cols).orderBy(order_col)

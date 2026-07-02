@@ -146,8 +146,16 @@ class BaseConsumptionJob:
         return result
 
     def _write_output(self, df: DataFrame):
+        from aws.src.common.utils.etl_utils import DataOptimizer
+
         target_path = f"s3://{self.args['TARGET_BUCKET']}/{self.args['TARGET_TABLE']}"
         partition_col = self.args["PARTITION_COLUMN"]
+
+        # --- FILE SIZING decision (§3 of PARTITIONING_FILE_SIZING_AND_TABLE_FORMATS) ---
+        # Right-size output to ~256 MB/file to avoid the small-files problem.
+        # No-op for delta/iceberg/databricks; coalesces/repartitions for plain parquet.
+        # Pass row_count (e.g. from job_optimizer) to size by bytes without a full .count().
+        df = DataOptimizer.right_size_output(df, platform="spark", row_count=None)
 
         logger.info(f"Writing consumption to {target_path}")
         (df.write.mode("overwrite")

@@ -96,14 +96,23 @@ class DataQualityFramework:
 
     def validate(self, df: DataFrame, config: DQConfig) -> DQReport:
         report = DQReport(table_name=config.table_name)
-        # Cache once — several checks scan the frame.
-        df = df.cache()
-        for check in config.checks:
-            try:
-                report.results.append(self._run_check(df, check, config))
-            except Exception as e:
-                logger.warning(f"DQ check '{check.name}' errored: {e} — skipping (treated as pass)")
-                report.results.append(DQResult(check.name, True, check.severity, f"Skipped (error: {e})"))
+        # Cache once — several checks scan the frame — then unpersist at the end.
+        cached = False
+        try:
+            df.cache()
+            cached = True
+        except Exception:
+            pass
+        try:
+            for check in config.checks:
+                try:
+                    report.results.append(self._run_check(df, check, config))
+                except Exception as e:
+                    logger.warning(f"DQ check '{check.name}' errored: {e} — skipping (treated as pass)")
+                    report.results.append(DQResult(check.name, True, check.severity, f"Skipped (error: {e})"))
+        finally:
+            if cached:
+                df.unpersist()
         logger.info(report.summary)
         return report
 

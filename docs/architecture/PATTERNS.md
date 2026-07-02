@@ -210,6 +210,11 @@ Best practices:
   - Databricks: Auto Optimize handles this automatically
 ```
 
+> 📘 **Deep dive:** [Partitioning, File Sizing & Table Formats — DE Decision Guide](./PARTITIONING_FILE_SIZING_AND_TABLE_FORMATS.md)
+> — `YYYYMM` vs `year/month`, file-level Copy-on-Write, clustering/Z-order dependency,
+> Parquet vs Iceberg vs Delta scenario matrix (AWS + Databricks), and the target
+> `sales_mart` design.
+
 ---
 
 ## 9. Platform Portability

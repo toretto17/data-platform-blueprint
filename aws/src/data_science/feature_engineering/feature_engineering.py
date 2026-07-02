@@ -24,7 +24,8 @@ logger = logging.getLogger("feature_engineering_aws")
 
 
 def lag_features(df: DataFrame, partition_cols: List[str], order_col: str,
-                 value_cols: List[str], lags: List[int] = [1, 7, 30]) -> DataFrame:
+                 value_cols: List[str], lags: Optional[List[int]] = None) -> DataFrame:
+    lags = lags or [1, 7, 30]
     w = Window.partitionBy(*partition_cols).orderBy(order_col)
     for col in value_cols:
         for lag in lags:
@@ -33,7 +34,8 @@ def lag_features(df: DataFrame, partition_cols: List[str], order_col: str,
 
 
 def rolling_stats(df: DataFrame, partition_cols: List[str], order_col: str,
-                  value_cols: List[str], windows: List[int] = [7, 30, 90]) -> DataFrame:
+                  value_cols: List[str], windows: Optional[List[int]] = None) -> DataFrame:
+    windows = windows or [7, 30, 90]
     for col in value_cols:
         for win in windows:
             w = (Window.partitionBy(*partition_cols).orderBy(order_col)
@@ -59,10 +61,11 @@ class FeatureEngineeringPipeline:
     SOURCE_TABLE: str = "silver_db.sales"                       # CHANGE_ME
     TARGET_PATH: str = "s3://CHANGE_ME/gold/features/"
     TARGET_TABLE: str = "gold_db.sales_features"
-    PARTITION_COLS: List[str] = ["item_id"]
+    PARTITION_COLS: List[str] = ["item_id"]                     # window partition (for lags/rolling)
     ORDER_COL: str = "tm_key_day"
     VALUE_COLS: List[str] = ["daily_ga", "daily_inflow_m1"]
     DATE_COL: str = "tm_key_day"
+    WRITE_PARTITION_COL: Optional[str] = "mnth_id"              # output partition; None = unpartitioned
 
     def __init__(self, spark: Optional[SparkSession] = None):
         self.spark = spark or SparkSession.builder.getOrCreate()
@@ -78,9 +81,13 @@ class FeatureEngineeringPipeline:
 
     def write(self, df: DataFrame):
         self.spark.conf.set("spark.sql.sources.partitionOverwriteMode", "dynamic")
-        (df.write.mode("overwrite").partitionBy("mnth_id")
-           .format("parquet").option("path", self.TARGET_PATH)
-           .saveAsTable(self.TARGET_TABLE))
+        writer = df.write.mode("overwrite").format("parquet").option("path", self.TARGET_PATH)
+        # Partition only when the configured column actually exists in the output.
+        if self.WRITE_PARTITION_COL and self.WRITE_PARTITION_COL in df.columns:
+            writer = writer.partitionBy(self.WRITE_PARTITION_COL)
+        elif self.WRITE_PARTITION_COL:
+            logger.warning(f"partition column '{self.WRITE_PARTITION_COL}' not in output — writing unpartitioned")
+        writer.saveAsTable(self.TARGET_TABLE)
         logger.info(f"written → {self.TARGET_TABLE}")
 
     def run(self):

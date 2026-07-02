@@ -121,3 +121,132 @@ class DeltaWriter:
 def get_writer(strategy: str = "delta") -> DeltaWriter:
     """Factory — matches the AWS get_writer() API. Only 'delta' on Databricks."""
     return DeltaWriter()
+
+
+class DataOptimizer:
+    """
+    In-code decision helpers for FILE SIZING and SKEW (salting).
+
+    PUBLIC API IS IDENTICAL to aws/src/common/utils/etl_utils.DataOptimizer so job
+    code stays portable across trees. Only the file-sizing DEFAULT differs by platform:
+    on Databricks/Delta, file sizing is handled by Auto Optimize
+    (delta.autoOptimize.optimizeWrite + autoCompact) and OPTIMIZE/ZORDER, so
+    right_size_output() is a no-op for delta/databricks and you should NOT shuffle
+    before write. The skew/salting helpers are the same plain-PySpark logic.
+
+    See docs/architecture/PARTITIONING_FILE_SIZING_AND_TABLE_FORMATS.md (§3, §4).
+
+    Golden numbers:
+        target file size    : 256 MB (accept 128 MB – 1 GB)
+        skew_ratio          : > 3   → significant skew
+        null_pct on key     : > 80% → treat as skew (salt or filter-and-union)
+    """
+
+    TARGET_FILE_BYTES = 256 * 1024 * 1024      # 256 MB
+    SKEW_RATIO_THRESHOLD = 3.0
+    NULL_PCT_THRESHOLD = 80.0
+
+    # ------------------------------------------------------------------ #
+    # FILE SIZING                                                         #
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def right_size_output(df: DataFrame,
+                          target_file_bytes: int = TARGET_FILE_BYTES,
+                          avg_row_bytes: Optional[int] = None,
+                          row_count: Optional[int] = None,
+                          platform: str = "databricks") -> DataFrame:
+        """
+        Resize output partitions to hit ~target_file_bytes per file.
+
+        On Databricks/Delta this is a NO-OP by design — Auto Optimize (optimizeWrite +
+        autoCompact) sizes files on write and OPTIMIZE/ZORDER compacts afterwards.
+        The signature matches the AWS twin so the same job code works in both trees.
+
+        DECISION (only when platform is spark_native/glue_catalog):
+            target_files = ceil(total_bytes / target_file_bytes)
+            if current > target_files*2 : coalesce(target_files)    # shrink, no shuffle
+            elif current < target_files  : repartition(target_files) # grow, shuffle
+            else                         : leave as-is
+        """
+        if platform in ("delta", "iceberg", "databricks"):
+            # Table formats size files via table properties + compaction (Auto Optimize).
+            return df
+
+        current = max(1, df.rdd.getNumPartitions())
+        if row_count is not None:
+            rb = avg_row_bytes if avg_row_bytes else 200
+            total_bytes = max(1, row_count * rb)
+            target_files = max(1, -(-total_bytes // target_file_bytes))  # ceil div
+        else:
+            target_files = max(1, current // 4)
+
+        if current > target_files * 2:
+            return df.coalesce(int(target_files))
+        if current < target_files:
+            return df.repartition(int(target_files))
+        return df
+
+    # ------------------------------------------------------------------ #
+    # SKEW DETECTION                                                      #
+    # ------------------------------------------------------------------ #
+    @classmethod
+    def detect_skew(cls, df: DataFrame, key_cols: List[str]) -> dict:
+        """
+        Profile skew on key_cols. Returns:
+            {skew_ratio, null_pct, is_skewed, recommend_salt, reason}
+        Triggers a shuffle+aggregation — run during a tuning pass, cache the verdict.
+        """
+        key = key_cols[0] if len(key_cols) == 1 else F.concat_ws("|", *key_cols)
+        counts = df.groupBy(key.alias("_k") if hasattr(key, "alias") else key).count()
+        stats = counts.agg(F.max("count").alias("mx"), F.avg("count").alias("av")).head(1)[0]
+        mx, av = (stats["mx"] or 0), (stats["av"] or 1)
+        skew_ratio = float(mx) / float(av) if av else 0.0
+
+        total = df.count()
+        null_cond = F.lit(False)
+        for c in key_cols:
+            null_cond = null_cond | F.col(c).isNull()
+        null_rows = df.filter(null_cond).count()
+        null_pct = (null_rows * 100.0 / total) if total else 0.0
+
+        is_skewed = skew_ratio > cls.SKEW_RATIO_THRESHOLD or null_pct > cls.NULL_PCT_THRESHOLD
+        return {
+            "skew_ratio": round(skew_ratio, 2),
+            "null_pct": round(null_pct, 2),
+            "is_skewed": is_skewed,
+            "recommend_salt": skew_ratio > cls.SKEW_RATIO_THRESHOLD or null_pct > cls.NULL_PCT_THRESHOLD,
+            "reason": (
+                f"skew_ratio={skew_ratio:.1f} (>{cls.SKEW_RATIO_THRESHOLD}) "
+                f"or null_pct={null_pct:.1f}% (>{cls.NULL_PCT_THRESHOLD}%)"
+                if is_skewed else "within thresholds — rely on AQE skewJoin"
+            ),
+        }
+
+    # ------------------------------------------------------------------ #
+    # SALTING                                                             #
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def salt_join(large: DataFrame, small: DataFrame, join_key: str,
+                  salt_n: int = 16, how: str = "inner") -> DataFrame:
+        """
+        Salted join for a skewed large side. Prefer AQE skewJoin FIRST; salt only when
+        detect_skew().recommend_salt is True.
+        """
+        large_s = large.withColumn("_salt", (F.rand() * salt_n).cast("int"))
+        small_s = small.withColumn(
+            "_salt", F.explode(F.array([F.lit(i) for i in range(salt_n)]))
+        )
+        return large_s.join(small_s, on=[join_key, "_salt"], how=how).drop("_salt")
+
+    @staticmethod
+    def salt_aggregate(df: DataFrame, group_cols: List[str],
+                       agg_col: str, agg_fn: str = "sum",
+                       salt_n: int = 16) -> DataFrame:
+        """
+        Two-stage salted aggregation for a skewed group key.
+        Only SUM/COUNT/MIN/MAX are safe to two-stage (associative). NOT for AVG/median.
+        """
+        fn = getattr(F, agg_fn)
+        salted = df.withColumn("_salt", (F.rand() * salt_n).cast("int"))
+        stage1 = salted.groupBy(*group_cols, "_salt").agg(fn(agg_col).alias("_partial"))
+        return stage1.groupBy(*group_cols).agg(fn("_partial").alias(agg_col))

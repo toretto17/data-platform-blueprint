@@ -202,16 +202,35 @@ class BaseBatchInference:
 
     def run_batch_transform(self, input_s3: str, output_s3: str,
                             model_name: Optional[str] = None) -> str:
-        """Run batch transform. Returns output S3 path."""
+        """Run batch transform. Returns output S3 path.
+
+        SageMaker requires a *Model* resource (not a package ARN) as ModelName.
+        We create a Model from the approved package, submit the transform, then
+        clean up the Model resource.
+        """
+        import time
         import boto3
         sm = boto3.client("sagemaker", region_name=self.infra_cfg.region)
 
-        model_arn = model_name or self.get_latest_approved_model()
-        job_name = f"{self.model_cfg.model_name}-bt-{int(__import__('time').time())}"
+        model_pkg_arn = self.get_latest_approved_model()
+        stamp = int(time.time())
+        sm_model_name = model_name or f"{self.model_cfg.model_name}-model-{stamp}"
+        job_name = f"{self.model_cfg.model_name}-bt-{stamp}"
 
+        # 1. Create the Model resource from the approved package
+        try:
+            sm.create_model(
+                ModelName=sm_model_name,
+                PrimaryContainer={"ModelPackageName": model_pkg_arn},
+                ExecutionRoleArn=self.infra_cfg.role_arn,
+            )
+        except sm.exceptions.ClientError:
+            pass  # already exists (idempotent)
+
+        # 2. Submit the transform job (ModelName = the Model resource, not the ARN)
         sm.create_transform_job(
             TransformJobName=job_name,
-            ModelName=model_arn,
+            ModelName=sm_model_name,
             TransformInput={
                 "DataSource": {"S3DataSource": {"S3DataType": "S3Prefix", "S3Uri": input_s3}},
                 "ContentType": "application/json",
@@ -226,4 +245,19 @@ class BaseBatchInference:
             MaxPayloadInMB=6,
         )
         logger.info(f"Started batch transform: {job_name}")
+
+        # 3. Poll to completion, then clean up the Model resource
+        while True:
+            desc = sm.describe_transform_job(TransformJobName=job_name)
+            status = desc["TransformJobStatus"]
+            if status in ("Completed", "Failed", "Stopped"):
+                break
+            time.sleep(30)
+        try:
+            sm.delete_model(ModelName=sm_model_name)
+        except Exception:
+            pass
+        if status != "Completed":
+            raise RuntimeError(f"Batch transform {status}: {desc.get('FailureReason')}")
+        logger.info(f"Batch transform complete → {output_s3}")
         return output_s3

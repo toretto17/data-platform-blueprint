@@ -4,3 +4,12 @@ pyspark>=3.4.0
 pandas>=2.0.0
 numpy>=1.24.0
 pyarrow>=12.0.0
+
+# Consumption API serving (optional — only needed to run consumption/apis/api_serving.py)
+# Install with: pip install "fastapi>=0.110.0" "uvicorn>=0.29.0" "sqlglot>=23.0.0" "mangum>=0.17.0"
+# sqlglot powers read-only SELECT + table allow-list validation in /v1/query
+# (a strict regex fallback runs if sqlglot is absent).
+# fastapi>=0.110.0
+# uvicorn>=0.29.0
+# sqlglot>=23.0.0
+# mangum>=0.17.0        # only for AWS Lambda + API Gateway deployment

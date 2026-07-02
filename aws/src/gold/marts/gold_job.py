@@ -205,7 +205,7 @@ class BaseGoldJob:
 
     def run(self):
         """Execute Gold pipeline with metadata freshness check and pluggable write."""
-        from aws.src.common.utils.etl_utils import EarlyExitCheck, MetadataFreshnessManager, get_writer
+        from aws.src.common.utils.etl_utils import EarlyExitCheck, MetadataFreshnessManager, get_writer, DataOptimizer
 
         try:
             sources = self._define_sources()
@@ -264,6 +264,22 @@ class BaseGoldJob:
 
             # Round all floats before write (Bug Pattern 4)
             final_df = self.round_all_floats(final_df)
+
+            # --- FILE SIZING decision (§3 of PARTITIONING_FILE_SIZING_AND_TABLE_FORMATS) ---
+            # Right-size output to ~256 MB/file. No-op for delta/iceberg/databricks
+            # (those size via target-file-size property + OPTIMIZE/rewrite/Auto Optimize).
+            # For spark_native/glue_catalog it coalesces/repartitions to hit the target.
+            # Pass row_count (e.g. from job_optimizer) to enable size-based sizing without
+            # a full-scan .count(); left None = conservative shrink only.
+            final_df = DataOptimizer.right_size_output(
+                final_df,
+                platform=self._get_write_strategy(),
+                row_count=None,
+            )
+            # SKEW/SALTING (§4): if this job has a known-skewed join/group key, profile once
+            # with DataOptimizer.detect_skew(...) during tuning, then apply
+            # DataOptimizer.salt_join(...) / salt_aggregate(...) only if recommend_salt.
+            # Rely on AQE skewJoin (enabled in _configure_spark) for moderate skew.
 
             writer.write(
                 final_df, target_path,

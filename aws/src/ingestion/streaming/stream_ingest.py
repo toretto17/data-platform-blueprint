@@ -64,13 +64,20 @@ class StreamIngestAWS:
 
     def run(self):
         stream = self.read_stream().withColumn("_ingest_ts", F.current_timestamp())
-        q = (stream.writeStream
-             .format("parquet")                                   # or "delta"
-             .option("path", self.target_path)
-             .option("checkpointLocation", self.checkpoint)        # exactly-once
-             .trigger(processingTime=self.args.get("TRIGGER", "60 seconds"))
-             .start())
-        logger.info("streaming started")
+        # Default sink = Delta (ACID + exactly-once with checkpoint + supports compaction).
+        # Set --SINK_FORMAT parquet only if you have a downstream reason to.
+        sink_format = self.args.get("SINK_FORMAT", "delta").lower()
+        partition_col = self.args.get("PARTITION_COLUMN")     # optional (e.g. _ingest_date)
+        writer = (stream.writeStream
+                  .format(sink_format)
+                  .option("path", self.target_path)
+                  .option("checkpointLocation", self.checkpoint)        # exactly-once
+                  .outputMode("append")
+                  .trigger(processingTime=self.args.get("TRIGGER", "60 seconds")))
+        if partition_col:
+            writer = writer.partitionBy(partition_col)
+        q = writer.start()
+        logger.info(f"streaming started (sink={sink_format})")
         q.awaitTermination()
 
 

@@ -903,7 +903,7 @@ class ETLOptimizationAnalyzer:
     
         try:
             df = self.spark.table(f"temp_{table}")
-        except:
+        except Exception:
             logger.error(f"Temp view temp_{table} not found. Volume analysis must run first.")
             raise RuntimeError(f"Cannot analyze skew: temp view for {table} not found")
             
@@ -1003,7 +1003,7 @@ class ETLOptimizationAnalyzer:
         # Reuse temp view from previous analysis
         try:
             df = self.spark.table(f"temp_{table}")
-        except:
+        except Exception:
             logger.error(f"Temp view temp_{table} not found. Volume analysis must run first.")
             raise RuntimeError(f"Cannot analyze quality: temp view for {table} not found")
             
@@ -1044,10 +1044,10 @@ class ETLOptimizationAnalyzer:
         # Q2: NULL analysis for key columns
         null_analysis = {}
         
-        for col in [primary_key, partition_column]:
+        for col_name in [primary_key, partition_column]:
             query = f"""
             SELECT 
-            SUM(CASE WHEN `{col}` IS NULL THEN 1 ELSE 0 END) as null_count,
+            SUM(CASE WHEN `{col_name}` IS NULL THEN 1 ELSE 0 END) as null_count,
             COUNT(*) as total_count
             FROM temp_{table}
             """
@@ -1057,10 +1057,10 @@ class ETLOptimizationAnalyzer:
             total_count = result['total_count']
             null_pct = (null_count * 100.0 / total_count) if total_count > 0 else 0
             
-            null_analysis[col] = {
-                'null_pct': round(null_pct, 2),
-                'severity': 'CRITICAL' if null_pct > 50 else 'HIGH' if null_pct > 10 else 'OK'
-            }
+            null_analysis[col_name] = {
+                            'null_pct': round(null_pct, 2),
+                            'severity': 'CRITICAL' if null_pct > 50 else 'HIGH' if null_pct > 10 else 'OK'
+                        }
         
         quality['null_analysis'] = null_analysis
         
@@ -1254,60 +1254,55 @@ class ETLOptimizationAnalyzer:
             """Select appropriate worker type"""
 
             worker_specs = {
-                # Source: https://docs.databricks.com/en/compute/cluster-types.html
-                # Databricks instances — usable_memory ~75% (better overhead mgmt than Glue)
-                # Memory: total per worker. Usable for Spark = ~62% (confirmed via AWS repost: 10GB heap of 16GB)
-                # Disk: attached EBS for shuffle spill
-                # Cores: vCPUs per worker (Glue 4.0)
-                'i3.xlarge': {  # Comparable to G.1X
-                    'total_memory_gb': 16,       # AWS docs: 4 vCPU, 16 GB, 64 GB disk
-                    'usable_memory_gb': 10,      # ~62% = heap (confirmed AWS repost)
-                    'disk_gb': 64,
+                # Source: https://docs.databricks.com/aws/en/compute/ + EC2 i3 instance specs.
+                # Databricks Runtime manages memory better than Glue → usable ~75% of RAM.
+                # dbu_per_hr = Jobs Compute DBU rate for the instance (× $0.40/DBU).
+                # max_data_per_worker ≈ usable_memory × {0.6 simple, 0.3 complex, 0.15 extreme}.
+                'i3.xlarge': {   # 4 vCPU, 30.5 GB, 950 GB NVMe
+                    'total_memory_gb': 30,
+                    'usable_memory_gb': 23,      # ~75%
+                    'disk_gb': 950,
                     'vcpus': 4,
-                    'dpu': 1,
-                    # Max data per worker: usable_memory * 0.6 (storage fraction) for caching
-                    # For processing (no cache): can handle ~2-3x memory in streaming fashion
-                    # These are CONSERVATIVE estimates (prefer over-provision to OOM):
-                    'max_data_simple': 6,        # Simple read/write: 6 GB/worker
-                    'max_data_complex': 3,       # Joins + shuffles: 3 GB/worker (data expands 2-3x in memory)
-                    'max_data_extreme': 1.5      # Skewed + multiple joins: 1.5 GB/worker
-                },
-                'i3.2xlarge': {  # Comparable to G.2X
-                    'total_memory_gb': 32,       # AWS docs: 8 vCPU, 32 GB, 128 GB disk
-                    'usable_memory_gb': 20,      # ~62%
-                    'disk_gb': 128,
-                    'vcpus': 8,
-                    'dpu': 2,
+                    'dbu_per_hr': 1.0,
                     'max_data_simple': 14,
                     'max_data_complex': 7,
                     'max_data_extreme': 3.5
                 },
-                'r5.4xlarge': {  # Comparable to G.4X
-                    'total_memory_gb': 64,       # AWS docs: 16 vCPU, 64 GB, 256 GB disk
-                    'usable_memory_gb': 40,      # ~62%
-                    'disk_gb': 256,
-                    'vcpus': 16,
-                    'dpu': 4,
-                    'max_data_simple': 28,
+                'i3.2xlarge': {  # 8 vCPU, 61 GB, 1900 GB NVMe
+                    'total_memory_gb': 61,
+                    'usable_memory_gb': 46,      # ~75%
+                    'disk_gb': 1900,
+                    'vcpus': 8,
+                    'dbu_per_hr': 2.0,
+                    'max_data_simple': 27,
                     'max_data_complex': 14,
                     'max_data_extreme': 7
                 },
-                'i3.8xlarge': {  # Comparable to G.8X
-                    'total_memory_gb': 128,      # AWS docs: 32 vCPU, 128 GB, 512 GB disk
-                    'usable_memory_gb': 80,      # ~62%
-                    'disk_gb': 512,
-                    'vcpus': 32,
-                    'dpu': 8,
-                    'max_data_simple': 56,
-                    'max_data_complex': 28,
+                'i3.4xlarge': {  # 16 vCPU, 122 GB, 3800 GB NVMe
+                    'total_memory_gb': 122,
+                    'usable_memory_gb': 91,      # ~75%
+                    'disk_gb': 3800,
+                    'vcpus': 16,
+                    'dbu_per_hr': 4.0,
+                    'max_data_simple': 55,
+                    'max_data_complex': 27,
                     'max_data_extreme': 14
+                },
+                'i3.8xlarge': {  # 32 vCPU, 244 GB, 7600 GB NVMe
+                    'total_memory_gb': 244,
+                    'usable_memory_gb': 183,     # ~75%
+                    'disk_gb': 7600,
+                    'vcpus': 32,
+                    'dbu_per_hr': 8.0,
+                    'max_data_simple': 110,
+                    'max_data_complex': 55,
+                    'max_data_extreme': 27
                 }
             }
-            # NOTE: max_data values are empirical estimates. AWS does not publish exact throughput numbers.
-            # These should be calibrated per workload by running 2-3 test jobs and measuring actual
-            # Spark UI metrics (shuffle read/write, GC time, task duration distribution).
-            # The formula: max_data ≈ usable_memory * spark.memory.fraction(0.6) * utilization_factor
-            # where utilization_factor = 1.0 (simple), 0.5 (complex), 0.25 (extreme skew)
+            # NOTE: max_data values are empirical estimates — calibrate per workload by running
+            # 2-3 test jobs and measuring Spark UI metrics (shuffle read/write, GC, task skew).
+            # Formula: max_data ≈ usable_memory × spark.memory.fraction(0.6) × utilization_factor
+            # where utilization_factor = 1.0 (simple), 0.5 (complex), 0.25 (extreme skew).
 
             if complexity == 'simple' and not has_joins:
                 capacity_key = 'max_data_simple'
@@ -1322,7 +1317,7 @@ class ETLOptimizationAnalyzer:
             required_memory_for_partition = largest_partition_gb * memory_multiplier
 
             selected_type = None
-            for worker_type in ['G.1X', 'G.2X', 'G.4X', 'G.8X']:
+            for worker_type in ['i3.xlarge', 'i3.2xlarge', 'i3.4xlarge', 'i3.8xlarge']:
                 spec = worker_specs[worker_type]
 
                 if spec['usable_memory_gb'] < required_memory_for_partition:
@@ -1335,9 +1330,10 @@ class ETLOptimizationAnalyzer:
                 break
 
             if not selected_type:
-                selected_type = 'G.8X'
+                selected_type = 'i3.8xlarge'
                 logger.warning(
-                    f"⚠️  Largest partition ({largest_partition_gb:.2f} GB) exceeds G.8X capacity!"
+                    f"⚠️  Largest partition ({largest_partition_gb:.2f} GB) exceeds i3.8xlarge capacity! "
+                    f"Consider splitting the partition or using a memory-optimized r-family instance."
                 )
 
             spec = worker_specs[selected_type]
@@ -1350,7 +1346,7 @@ class ETLOptimizationAnalyzer:
 
             return (
                 selected_type,
-                spec['dpu'],
+                spec['dbu_per_hr'],
                 spec['usable_memory_gb'],
                 spec[capacity_key]
             )
@@ -1363,7 +1359,7 @@ class ETLOptimizationAnalyzer:
                                 scenario_largest_partition_gb: float) -> Dict:
             """Calculate resources for given scenario"""
 
-            worker_type, dpu_per_worker, usable_memory, max_data_per_worker = \
+            worker_type, dbu_per_worker, usable_memory, max_data_per_worker = \
                 determine_worker_type(data_size_gb, scenario_largest_partition_gb)
 
             base_workers = math.ceil(data_size_gb / max_data_per_worker)
@@ -1378,9 +1374,10 @@ class ETLOptimizationAnalyzer:
             num_workers = math.ceil(base_workers * skew_adjustment)
             num_workers = max(2, min(num_workers, 200))
 
-            total_dpus = num_workers * dpu_per_worker
+            # Total cluster DBU/hr (rate), used for cost.
+            total_dbu_per_hr = num_workers * dbu_per_worker
 
-            cores_per_worker = {'i3.xlarge': 4, 'i3.2xlarge': 8, 'r5.4xlarge': 16, 'i3.8xlarge': 32}[worker_type]
+            cores_per_worker = {'i3.xlarge': 4, 'i3.2xlarge': 8, 'i3.4xlarge': 16, 'i3.8xlarge': 32}[worker_type]
             total_cores = num_workers * cores_per_worker
 
             target_partition_size_mb = 128
@@ -1427,8 +1424,7 @@ class ETLOptimizationAnalyzer:
             estimated_time_min = max(estimated_time_min, 5)
 
             # Databricks: cost in DBUs (Jobs Compute = $0.40/DBU)
-            dbu_per_hr = worker_specs[selected_type].get('dbu_per_hr', spec['dpu'])
-            estimated_cost = num_workers * dbu_per_hr * 0.40 * (estimated_time_min / 60)
+            estimated_cost = total_dbu_per_hr * 0.40 * (estimated_time_min / 60)
             timeout_minutes = max(int(estimated_time_min * 3), 30)
 
             return {
@@ -1437,8 +1433,8 @@ class ETLOptimizationAnalyzer:
                 'largest_partition_gb': round(scenario_largest_partition_gb, 2),
                 'worker_type': worker_type,
                 'num_workers': num_workers,
-                'dpu_per_worker': dpu_per_worker,
-                'total_dpus': total_dpus,
+                'dbu_per_worker': dbu_per_worker,
+                'total_dbu_per_hr': total_dbu_per_hr,
                 'shuffle_partitions': shuffle_partitions,
                 'timing': {
                     'estimated_time_min': round(estimated_time_min, 1),
@@ -1448,8 +1444,8 @@ class ETLOptimizationAnalyzer:
                 },
                 'cost': {
                     'estimated_cost_usd': round(estimated_cost, 2),
-                    'dpu_hour_rate': 0.44,
-                    'estimated_dpu_hours': round(total_dpus * (estimated_time_min / 60), 2)
+                    'dbu_hour_rate': 0.40,
+                    'estimated_dbu_hours': round(total_dbu_per_hr * (estimated_time_min / 60), 2)
                 },
                 'calculation_details': {
                     'max_data_per_worker_gb': max_data_per_worker,
@@ -1541,7 +1537,7 @@ class ETLOptimizationAnalyzer:
             logger.info(f"   Largest Partition: {config['largest_partition_gb']:.2f} GB")
             logger.info(f"   Worker Type: {config['worker_type']} ({config['calculation_details']['worker_memory_gb']} GB usable memory)")
             logger.info(f"   Num Workers: {config['num_workers']}")
-            logger.info(f"   Total DPUs: {config['total_dpus']}")
+            logger.info(f"   Total DBU/hr: {config['total_dbu_per_hr']}")
             logger.info(f"   Shuffle Partitions: {config['shuffle_partitions']}")
             logger.info(f"   Est. Time: {config['timing']['estimated_time_min']:.1f} min ({config['timing']['estimated_time_hours']:.2f} hrs)")
             logger.info(f"   Throughput: {config['timing']['throughput_gb_per_min']:.2f} GB/min")
@@ -1601,23 +1597,26 @@ class ETLOptimizationAnalyzer:
 
             # Rest of configs...
             config['spark.sql.adaptive.advisoryPartitionSizeInBytes'] = '134217728'
-            # AWS Glue 4.0 has AQE enabled by default which auto-converts sort-merge to broadcast
-            # when runtime stats show one side < adaptive threshold.
-            # Set explicit threshold based on detected dimension sizes (default 10MB in Spark,
-            # but AWS recommends up to 100MB for Glue where network is fast).
-            # Reference: https://docs.aws.amazon.com/prescriptive-guidance/latest/tuning-aws-glue-for-apache-spark/optimize-shuffles.html
-            config['spark.sql.autoBroadcastJoinThreshold'] = '104857600'  # 100MB — let AQE decide dynamically
+            # Databricks Runtime enables AQE by default and auto-converts sort-merge to broadcast
+            # when runtime stats show one side below the threshold. 100MB is safe on Databricks
+            # (fast intra-cluster network); let AQE decide dynamically.
+            config['spark.sql.autoBroadcastJoinThreshold'] = '104857600'  # 100MB
             config['spark.sql.files.maxPartitionBytes'] = '134217728'
-            config['spark.sql.files.maxRecordsPerFile'] = '500000'
             config['spark.sql.parquet.enableVectorizedReader'] = 'true'
             config['spark.sql.sources.partitionOverwriteMode'] = 'dynamic'
-            config['spark.sql.legacy.parquet.datetimeRebaseModeInRead'] = 'LEGACY'
-            config['spark.sql.legacy.parquet.datetimeRebaseModeInWrite'] = 'LEGACY'
 
-            # NOTE: These configs are managed by AWS Glue and cannot be overridden:
-            # - spark.memory.fraction
-            # - spark.memory.storageFraction  
-            # - spark.serializer (already Kryo in Glue 3.0+)
+            # --- Delta file sizing (Databricks equivalent of manual coalesce) ---
+            # Auto Optimize sizes files on write + compacts small files automatically,
+            # so jobs should NOT coalesce/repartition before a Delta write.
+            config['spark.databricks.delta.optimizeWrite.enabled'] = 'true'
+            config['spark.databricks.delta.autoCompact.enabled'] = 'true'
+
+            # --- Photon (vectorized C++ engine) — big speedup for scans/joins/aggs ---
+            # Enable at the cluster level (runtime_engine = PHOTON); this flag documents intent.
+            config['spark.databricks.photon.enabled'] = 'true'
+
+            # NOTE: On Databricks, spark.memory.fraction / storageFraction / serializer (Kryo)
+            # are managed by the runtime — do not override.
 
             configs[scenario_key] = config
 
@@ -1926,49 +1925,20 @@ def analyze_and_optimize_databricks_job(
         logger.error(f"Analysis failed: {str(e)}", exc_info=True)
         raise
 
-#result = analyze_and_optimize_glue_job(
-#    sources=[
-#        {"database": "edmaiml_central_data", 
-#         "table": "fct_sr_request_d", 
-#         "primary_key": "prod_key",
-#         "partition_column": "sr_open_dt",
-#         "role": "primary"},
-#        {"database": "mobile_revenue_analytics_silver", 
-#         "table": "most_used_cellsite", 
-#         "primary_key": "prod_key", 
-#         "partition_column": "mnth_id",
-#         "role": "dimension",
-#         "operation": "JOIN",             
-#         "join_type": "LEFT",             
-#         "join_keys": ["prod_key", "mnth_id"]}
-#    ],  
-#    target={"database": "mobile_revenue_analytics_silver", "table": "complain"},
-#    run_mode="overwrite",
-#    analysis_end_month="202508",               # ← Required param (no keyword needed)
-#    spark=spark,                               # ← Required param
-#    spark=spark,                  # ← Required param
-#    # target_partition_granularity=None,       # ← Optional (will auto-detect)
-#    analysis_months_count=3                    # ← Optional
-#)
-result = analyze_and_optimize_glue_job(
-    sources=[
-        {"database": "edwacs_central_data", 
-         "table": "agg_network_kpi_d", 
-         "primary_key": "prod_key",
-         "partition_column": "sr_open_dt",
-         "role": "primary"}
-    ],  
-    target={"database": "mobile_revenue_analytics_silver", "table": "network_site_hour"},
-    run_mode="overwrite",
-    analysis_end_month="202508",               # ← Required param (no keyword needed)
-    spark=spark,                               # ← Required param
-    # target_partition_granularity=None,       # ← Optional (will auto-detect)
-    analysis_months_count=3                    # ← Optional
-)
-# Cell 4: View results
-import json
-print(json.dumps(result, indent=2, default=str))
-# Cell 5: Apply and use
-for key, value in result['spark_configurations'].items():
-    print('********',key,value)
-job.commit()
+
+# ============================================================================
+# ENTRY POINT
+# ============================================================================
+if __name__ == "__main__":
+    # Import and call analyze_and_optimize_databricks_job(...) from your job/notebook, where a SparkSession
+    # (and GlueContext on AWS) already exist. Example:
+    #
+    #   result = analyze_and_optimize_databricks_job(
+    #       sources=[{"database": "CHANGE_ME", "table": "CHANGE_ME",
+    #                 "primary_key": "CHANGE_ME", "partition_column": "mnth_id",
+    #                 "role": "primary"}],
+    #       target={"database": "CHANGE_ME", "table": "CHANGE_ME"},
+    #       run_mode="overwrite", analysis_end_month="202506",
+    #       spark=spark, analysis_months_count=3)
+    #   import json; print(json.dumps(result, indent=2, default=str))
+    print("ETL job optimizer — import and call analyze_and_optimize_databricks_job(...) from your job.")

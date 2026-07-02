@@ -354,15 +354,17 @@ def all_glue_job_params():
         "--spark-event-logs-path": "s3://CHANGE_ME/spark-logs/",
         "--enable-continuous-cloudwatch-log": "true",
         "--enable-continuous-log-filter": "true",
-        "--conf": "spark.sql.adaptive.enabled=true",
-
         # --- Cost ---
         "--enable-auto-scaling": "true",
         "--keep-alive-period-in-seconds": "300",
 
         # --- Delta / Iceberg ---
         "--datalake-formats": "iceberg,delta",         # enable both
-        "--conf": "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions",
+        # NOTE: dict keys can't repeat — a second "--conf" key would silently overwrite
+        # the first. Glue takes MULTIPLE Spark confs in ONE --conf value, separated
+        # by " --conf ". Put every spark.* setting here:
+        "--conf": ("spark.sql.adaptive.enabled=true "
+                   "--conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"),
 
         # --- Custom ---
         "--TempDir": "s3://CHANGE_ME/temp/",

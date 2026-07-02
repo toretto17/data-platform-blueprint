@@ -907,7 +907,7 @@ class ETLOptimizationAnalyzer:
     
         try:
             df = self.spark.table(f"temp_{table}")
-        except:
+        except Exception:
             logger.error(f"Temp view temp_{table} not found. Volume analysis must run first.")
             raise RuntimeError(f"Cannot analyze skew: temp view for {table} not found")
             
@@ -1007,7 +1007,7 @@ class ETLOptimizationAnalyzer:
         # Reuse temp view from previous analysis
         try:
             df = self.spark.table(f"temp_{table}")
-        except:
+        except Exception:
             logger.error(f"Temp view temp_{table} not found. Volume analysis must run first.")
             raise RuntimeError(f"Cannot analyze quality: temp view for {table} not found")
             
@@ -1048,10 +1048,10 @@ class ETLOptimizationAnalyzer:
         # Q2: NULL analysis for key columns
         null_analysis = {}
         
-        for col in [primary_key, partition_column]:
+        for col_name in [primary_key, partition_column]:
             query = f"""
             SELECT 
-            SUM(CASE WHEN `{col}` IS NULL THEN 1 ELSE 0 END) as null_count,
+            SUM(CASE WHEN `{col_name}` IS NULL THEN 1 ELSE 0 END) as null_count,
             COUNT(*) as total_count
             FROM temp_{table}
             """
@@ -1061,10 +1061,10 @@ class ETLOptimizationAnalyzer:
             total_count = result['total_count']
             null_pct = (null_count * 100.0 / total_count) if total_count > 0 else 0
             
-            null_analysis[col] = {
-                'null_pct': round(null_pct, 2),
-                'severity': 'CRITICAL' if null_pct > 50 else 'HIGH' if null_pct > 10 else 'OK'
-            }
+            null_analysis[col_name] = {
+                            'null_pct': round(null_pct, 2),
+                            'severity': 'CRITICAL' if null_pct > 50 else 'HIGH' if null_pct > 10 else 'OK'
+                        }
         
         quality['null_analysis'] = null_analysis
         
@@ -1961,50 +1961,20 @@ def analyze_and_optimize_glue_job(
         logger.error(f"Analysis failed: {str(e)}", exc_info=True)
         raise
 
-#result = analyze_and_optimize_glue_job(
-#    sources=[
-#        {"database": "edmaiml_central_data", 
-#         "table": "fct_sr_request_d", 
-#         "primary_key": "prod_key",
-#         "partition_column": "sr_open_dt",
-#         "role": "primary"},
-#        {"database": "mobile_revenue_analytics_silver", 
-#         "table": "most_used_cellsite", 
-#         "primary_key": "prod_key", 
-#         "partition_column": "mnth_id",
-#         "role": "dimension",
-#         "operation": "JOIN",             
-#         "join_type": "LEFT",             
-#         "join_keys": ["prod_key", "mnth_id"]}
-#    ],  
-#    target={"database": "mobile_revenue_analytics_silver", "table": "complain"},
-#    run_mode="overwrite",
-#    analysis_end_month="202508",               # ← Required param (no keyword needed)
-#    spark=spark,                               # ← Required param
-#    glue_context=glueContext,                  # ← Required param
-#    # target_partition_granularity=None,       # ← Optional (will auto-detect)
-#    analysis_months_count=3                    # ← Optional
-#)
-result = analyze_and_optimize_glue_job(
-    sources=[
-        {"database": "edwacs_central_data", 
-         "table": "agg_network_kpi_d", 
-         "primary_key": "prod_key",
-         "partition_column": "sr_open_dt",
-         "role": "primary"}
-    ],  
-    target={"database": "mobile_revenue_analytics_silver", "table": "network_site_hour"},
-    run_mode="overwrite",
-    analysis_end_month="202508",               # ← Required param (no keyword needed)
-    spark=spark,                               # ← Required param
-    glue_context=glueContext,                  # ← Required param
-    # target_partition_granularity=None,       # ← Optional (will auto-detect)
-    analysis_months_count=3                    # ← Optional
-)
-# Cell 4: View results
-import json
-print(json.dumps(result, indent=2, default=str))
-# Cell 5: Apply and use
-for key, value in result['spark_configurations'].items():
-    print('********',key,value)
-job.commit()
+
+# ============================================================================
+# ENTRY POINT
+# ============================================================================
+if __name__ == "__main__":
+    # Import and call analyze_and_optimize_glue_job(...) from your job/notebook, where a SparkSession
+    # (and GlueContext on AWS) already exist. Example:
+    #
+    #   result = analyze_and_optimize_glue_job(
+    #       sources=[{"database": "CHANGE_ME", "table": "CHANGE_ME",
+    #                 "primary_key": "CHANGE_ME", "partition_column": "mnth_id",
+    #                 "role": "primary"}],
+    #       target={"database": "CHANGE_ME", "table": "CHANGE_ME"},
+    #       run_mode="overwrite", analysis_end_month="202506",
+    #       spark=spark, glue_context=glueContext, analysis_months_count=3)
+    #   import json; print(json.dumps(result, indent=2, default=str))
+    print("ETL job optimizer — import and call analyze_and_optimize_glue_job(...) from your job.")

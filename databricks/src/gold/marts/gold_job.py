@@ -29,7 +29,7 @@ from typing import List
 from pyspark.sql import DataFrame, SparkSession, Window
 from pyspark.sql import functions as F
 
-from databricks.src.common.utils.etl_utils import EarlyExitCheck, get_writer
+from databricks.src.common.utils.etl_utils import EarlyExitCheck, get_writer, DataOptimizer
 from databricks.src.common.validations.dq_framework import DataQualityFramework, DQConfig
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s - %(message)s")
@@ -100,6 +100,12 @@ class BaseGoldJobDatabricks:
                     self.dq.publish_metrics(report)
                     from databricks.src.common.exceptions.exceptions import DQError
                     raise DQError(report.summary)
+            # --- FILE SIZING decision (§3 of PARTITIONING_FILE_SIZING_AND_TABLE_FORMATS) ---
+            # No-op on Delta (Auto Optimize sizes files on write + OPTIMIZE/ZORDER compacts).
+            # Kept for symmetry with the AWS tree; flip platform to size manually if needed.
+            # SKEW/SALTING (§4): profile once with DataOptimizer.detect_skew(...); apply
+            # DataOptimizer.salt_join(...) / salt_aggregate(...) only if recommend_salt.
+            final = DataOptimizer.right_size_output(final, platform="databricks")
             get_writer().write(final, self.target_table, partition_col=self.PARTITION_COLUMN, mode=self.mode)
             logger.info("Gold(Databricks) job complete.")
         except Exception as e:

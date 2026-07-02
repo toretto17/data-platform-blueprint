@@ -135,7 +135,8 @@ class BaseSilverJob:
 
         # DQ Manager
         import boto3
-        self.dq_manager = DataQualityManager(boto3.client("glue", region_name="ap-southeast-1"), self.glueContext)
+        self.region = self.args.get("REGION", "ap-southeast-1")
+        self.dq_manager = DataQualityManager(boto3.client("glue", region_name=self.region), self.glueContext)
 
         logger.info(f"Job initialized: {self.args['JOB_NAME']}")
         logger.info(f"Target: {self.args['TARGET_DATABASE']}.{self.args['TARGET_TABLE']}")
@@ -237,7 +238,7 @@ class BaseSilverJob:
 
     def run(self):
         """Execute the full ETL pipeline."""
-        from aws.src.common.utils.etl_utils import EarlyExitCheck, MetadataFreshnessManager, get_writer
+        from aws.src.common.utils.etl_utils import EarlyExitCheck, MetadataFreshnessManager, get_writer, DataOptimizer
 
         try:
             # 1. Read
@@ -269,6 +270,16 @@ class BaseSilverJob:
             # 7. Write (pluggable strategy)
             writer = get_writer(self._get_write_strategy())
             target_path = f"s3://{self.args['TARGET_BUCKET']}/{self.args['TARGET_TABLE']}"
+
+            # --- FILE SIZING decision (§3 of PARTITIONING_FILE_SIZING_AND_TABLE_FORMATS) ---
+            # Right-size output to ~256 MB/file. No-op for delta/iceberg/databricks;
+            # coalesces/repartitions for spark_native/glue_catalog. Pass row_count to
+            # enable size-based sizing without a full-scan .count().
+            final_df = DataOptimizer.right_size_output(
+                final_df,
+                platform=self._get_write_strategy(),
+                row_count=None,
+            )
             writer.write(
                 final_df, target_path,
                 partition_col=self.args["PARTITION_COLUMN"],

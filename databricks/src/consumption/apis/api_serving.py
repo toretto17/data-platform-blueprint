@@ -134,18 +134,63 @@ class CustomQuery(BaseModel):
         json_schema_extra = {"example": {"sql": "SELECT product, SUM(daily_ga) FROM sales_mart GROUP BY product", "limit": 100}}
 
 
+def _fallback_sql_guard(sql: str):
+    """Parser-less strict guard (used only if sqlglot is not installed)."""
+    low = f" {sql.lower()} "
+    if not (low.lstrip().startswith("select") or low.lstrip().startswith("with")):
+        raise HTTPException(status_code=403, detail="Only SELECT queries are allowed")
+    for kw in ("insert", "update", "delete", "drop", "create", "alter", "merge", "grant", "truncate"):
+        if f" {kw} " in low:
+            raise HTTPException(status_code=403, detail="Only read-only SELECT queries are allowed")
+    residual = low
+    for t in ALLOWED_TABLES:
+        residual = residual.replace(t.lower(), "")
+    if f"{SCHEMA.lower()}." in residual.replace(SCHEMA.lower() + ".", ""):
+        raise HTTPException(status_code=403, detail="Query references tables not in the allow-list")
+
+
+def _assert_safe_select(sql: str):
+    """Validate that `sql` is a SINGLE read-only SELECT referencing ONLY allow-listed
+    tables. Uses sqlglot (a real SQL parser) when available; strict regex fallback otherwise."""
+    stripped = sql.strip().rstrip(";")
+    if ";" in stripped:
+        raise HTTPException(status_code=400, detail="Multiple statements are not allowed")
+    try:
+        import sqlglot
+        from sqlglot import exp
+    except ImportError:
+        _fallback_sql_guard(stripped)
+        return
+    try:
+        statements = sqlglot.parse(stripped, read="databricks")   # Databricks SQL dialect
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Unparseable SQL: {e}")
+    if len(statements) != 1 or statements[0] is None:
+        raise HTTPException(status_code=400, detail="Exactly one SELECT statement is required")
+    stmt = statements[0]
+    if not isinstance(stmt, exp.Select):
+        raise HTTPException(status_code=403, detail="Only read-only SELECT queries are allowed")
+    forbidden = (exp.Insert, exp.Update, exp.Delete, exp.Drop, exp.Create, exp.Alter, exp.Merge, exp.Command)
+    if any(stmt.find(f) for f in forbidden):
+        raise HTTPException(status_code=403, detail="Only read-only SELECT queries are allowed")
+    cte_names = {c.alias_or_name for c in stmt.find_all(exp.CTE)}
+    for tbl in stmt.find_all(exp.Table):
+        if tbl.name and tbl.name not in ALLOWED_TABLES and tbl.name not in cte_names:
+            raise HTTPException(status_code=403,
+                                detail=f"Table '{tbl.name}' not in allow-list. Allowed: {sorted(ALLOWED_TABLES)}")
+
+
 @app.post("/v1/query", dependencies=[Depends(require_api_key)])
 def custom_query(body: CustomQuery):
-    """Run custom SQL (restricted to allowed tables)."""
+    """Run a custom SQL query (restricted to allow-listed tables, read-only).
+
+    Validated with a real SQL parser (sqlglot): must be a single SELECT and may
+    reference ONLY tables in the allow-list. A LIMIT is enforced (max 10000).
+    """
     sql = body.sql.strip().rstrip(";")
-    sql_lower = sql.lower()
-    # Basic security: check only allowed tables referenced
-    for table in ALLOWED_TABLES:
-        sql_lower = sql_lower.replace(table, "")
-    if f"{SCHEMA.lower()}." in sql_lower.replace(SCHEMA.lower() + ".", ""):
-        raise HTTPException(status_code=403, detail="References tables not in the allow-list")
+    _assert_safe_select(sql)
     limit = min(body.limit, 10000)
-    if "limit" not in sql_lower:
+    if "limit" not in sql.lower():
         sql = f"{sql} LIMIT {limit}"
     rows = _query(sql)
     return {"sql": body.sql, "count": len(rows), "rows": rows}

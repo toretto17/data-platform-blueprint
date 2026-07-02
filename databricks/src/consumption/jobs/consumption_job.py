@@ -26,7 +26,7 @@ import logging
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 
-from databricks.src.common.utils.etl_utils import EarlyExitCheck, get_writer
+from databricks.src.common.utils.etl_utils import EarlyExitCheck, get_writer, DataOptimizer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s - %(message)s")
 logger = logging.getLogger("consumption_databricks")
@@ -70,6 +70,9 @@ class BaseConsumptionJobDatabricks:
                 return
             out = self._enrich(gold)
             mode = "overwrite" if self.is_initial_load else "append"
+            # --- FILE SIZING decision (§3) — no-op on Delta (Auto Optimize). Symmetric
+            # with AWS tree. SKEW/SALTING (§4): detect_skew() then salt_* if recommend_salt.
+            out = DataOptimizer.right_size_output(out, platform="databricks")
             get_writer().write(out, self.target_table, partition_col=self.partition_col, mode=mode)
             if self.expose_view:
                 spark.sql(f"CREATE OR REPLACE VIEW {self.expose_view} AS SELECT * FROM {self.target_table}")

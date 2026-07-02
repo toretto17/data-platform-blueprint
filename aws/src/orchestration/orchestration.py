@@ -110,7 +110,7 @@ def build_etl_sf_definition(steps: List[dict]) -> dict:
             "Type": "Task",
             "Resource": "arn:aws:states:::states:startExecution.sync:2",
             "Parameters": {
-                "StateMachineArn": "arn:aws:states:CHANGE_ME:CHANGE_ME:stateMachine:sfn-bnic-aii-fw-transformation",
+                "StateMachineArn": "arn:aws:states:CHANGE_ME:CHANGE_ME:stateMachine:sfn-CHANGE_ME-fw-transformation",
                 "Input": {"job_name": s["job_name"], "dl_date.$": "$.dl_date"},
             },
             "Next": next_state,

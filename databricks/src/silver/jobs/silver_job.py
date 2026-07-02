@@ -32,7 +32,7 @@ from pyspark.sql import functions as F
 from pyspark.sql import types as T
 
 # Shared Databricks utils (same API as AWS tree)
-from databricks.src.common.utils.etl_utils import EarlyExitCheck, get_writer
+from databricks.src.common.utils.etl_utils import EarlyExitCheck, get_writer, DataOptimizer
 from databricks.src.common.validations.dq_framework import (
     DataQualityFramework, DQConfig, DQCheck, Severity,
 )
@@ -106,6 +106,9 @@ class BaseSilverJobDatabricks:
                     self.dq.publish_metrics(report)
                     from databricks.src.common.exceptions.exceptions import DQError
                     raise DQError(report.summary)
+            # --- FILE SIZING decision (§3) — no-op on Delta (Auto Optimize). Symmetric
+            # with AWS tree. SKEW/SALTING (§4): detect_skew() then salt_* if recommend_salt.
+            df = DataOptimizer.right_size_output(df, platform="databricks")
             get_writer().write(df, self.target_table, partition_col=self.partition_col, mode=self.mode)
             logger.info("Silver(Databricks) job complete.")
         except Exception as e:

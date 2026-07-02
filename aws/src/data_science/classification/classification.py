@@ -70,7 +70,7 @@ class ClassificationProject:
              "accuracy": float(accuracy_score(y_true, y_pred))}
         if y_proba is not None:
             try: m["roc_auc"] = float(roc_auc_score(y_true, y_proba))
-            except: pass
+            except Exception: pass
         return m
 
     def run(self, data_path: str, output_dir: str = "/opt/ml/processing/output"):

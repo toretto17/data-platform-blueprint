@@ -115,48 +115,16 @@ class IsolationForestDetector(BaseAnomalyDetector):
         return self.assign_severity(df)
 
 
-# ============================================================
-# FORECASTING TEMPLATE
-# ============================================================
-@dataclass
-class ForecastConfig:
-    """Configuration for time-series forecasting."""
-    model_type: str = "chronos"              # chronos | prophet | arima | ensemble
-    target_column: str = "CHANGE_ME"         # Column to forecast
-    segment_columns: List[str] = None        # Forecast per segment
-    forecast_horizon: int = 30               # Days ahead
-    history_days: int = 365                  # Training lookback
-    frequency: str = "D"                     # D=daily, W=weekly, M=monthly
-
-    def __post_init__(self):
-        self.segment_columns = self.segment_columns or ["CHANGE_ME_segment"]
-
-
-class BaseForecaster:
-    """Base forecasting class. Override per algorithm."""
-
-    def __init__(self, config: ForecastConfig):
-        self.config = config
-
-    def preprocess(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Clean and prepare time series. Override if needed."""
-        # Ensure sorted by date
-        df = df.sort_values("date")
-        # Fill gaps
-        df[self.config.target_column] = df[self.config.target_column].fillna(0)
-        return df
-
-    def train(self, df: pd.DataFrame) -> Dict:
-        """Train forecast model(s). Returns model artifacts."""
-        raise NotImplementedError
-
-    def predict(self, models: Dict, last_date: str) -> pd.DataFrame:
-        """Generate forecasts. Returns DataFrame with date, forecast, lower, upper."""
-        raise NotImplementedError
-
-    def evaluate(self, actual: pd.Series, predicted: pd.Series) -> Dict[str, float]:
-        """Compute forecast accuracy metrics."""
-        mape = np.mean(np.abs((actual - predicted) / actual.clip(lower=1))) * 100
-        rmse = np.sqrt(np.mean((actual - predicted) ** 2))
-        mae = np.mean(np.abs(actual - predicted))
-        return {"mape": mape, "rmse": rmse, "mae": mae}
+if __name__ == "__main__":
+    # Minimal runnable example (replace CHANGE_ME with your columns).
+    cfg = AnomalyConfig(
+        model_type="isolation_forest",
+        target_columns=["CHANGE_ME_metric"],     # CHANGE_ME
+        segment_columns=["CHANGE_ME_segment"],    # CHANGE_ME
+    )
+    detector = IsolationForestDetector(cfg)
+    # df = pd.read_parquet("/opt/ml/processing/input/features.parquet")
+    # df = detector.engineer_features(df)
+    # models = detector.train(df)
+    # scored = detector.predict(df, models)
+    logger.info("anomaly detection template ready")

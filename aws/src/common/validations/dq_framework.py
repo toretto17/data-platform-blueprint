@@ -96,19 +96,34 @@ class DataQualityFramework:
         self.glue_client = glue_client
 
     def validate(self, df: DataFrame, config: DQConfig) -> DQReport:
-        """Run all configured checks on a DataFrame."""
+        """Run all configured checks on a DataFrame.
+
+        Several checks trigger actions (count/agg). We cache the input once so the
+        whole check suite scans the data a single time, then unpersist at the end.
+        """
         report = DQReport(table_name=config.table_name)
 
-        for check in config.checks:
-            try:
-                result = self._run_check(df, check, config)
-                report.results.append(result)
-            except Exception as e:
-                logger.warning(f"DQ check '{check.name}' failed with error: {e} — skipping")
-                report.results.append(DQResult(
-                    check_name=check.name, passed=True,
-                    severity=check.severity, message=f"Skipped (error: {e})"
-                ))
+        cached = False
+        try:
+            df.cache()
+            cached = True
+        except Exception:
+            pass
+
+        try:
+            for check in config.checks:
+                try:
+                    result = self._run_check(df, check, config)
+                    report.results.append(result)
+                except Exception as e:
+                    logger.warning(f"DQ check '{check.name}' failed with error: {e} — skipping")
+                    report.results.append(DQResult(
+                        check_name=check.name, passed=True,
+                        severity=check.severity, message=f"Skipped (error: {e})"
+                    ))
+        finally:
+            if cached:
+                df.unpersist()
 
         logger.info(report.summary)
         return report

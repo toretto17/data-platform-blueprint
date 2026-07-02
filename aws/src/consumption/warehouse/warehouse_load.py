@@ -55,6 +55,10 @@ class RedshiftLoad:
         self.native_table = args["NATIVE_TABLE"]             # target native table
         self.window_col = args.get("LOAD_WINDOW_COL")        # e.g. mnth_id (idempotent reload)
         self.window_val = args.get("LOAD_WINDOW_VAL")        # e.g. 202606
+        # Optional explicit column list (comma-separated). Strongly recommended:
+        # relying on SELECT * requires identical column ORDER between the Spectrum
+        # external table and the native table. An explicit list is order-safe.
+        self.column_list = [c.strip() for c in args.get("COLUMN_LIST", "").split(",") if c.strip()]
         self.client = boto3.client("redshift-data", region_name=self.region)
 
     # ---- 0. one-time DDL helpers (run once, or guard with IF NOT EXISTS) ----
@@ -77,12 +81,18 @@ class RedshiftLoad:
             where = f"WHERE {self.window_col} = {self.window_val}"
         else:
             where = ""  # full refresh
+        # Order-safe INSERT when an explicit column list is provided; otherwise SELECT *
+        # (which requires identical column order between the external and native tables).
+        if self.column_list:
+            cols = ", ".join(self.column_list)
+            insert_clause = f"INSERT INTO {target} ({cols})\n        SELECT {cols} FROM {source} {where}"
+        else:
+            insert_clause = f"INSERT INTO {target}\n        SELECT * FROM {source} {where}"
         # Use a transaction so BI never sees a half-loaded table.
         return f"""
         BEGIN;
         DELETE FROM {target} {where};
-        INSERT INTO {target}
-        SELECT * FROM {source} {where};
+        {insert_clause};
         COMMIT;
         """
 
