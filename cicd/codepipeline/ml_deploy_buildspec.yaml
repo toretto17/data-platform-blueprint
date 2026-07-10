@@ -1,0 +1,247 @@
+# ============================================================
+# ML DEPLOY Buildspec — Promotes Models + Deploys Inference + Triggers Monitoring
+# ============================================================
+#
+# PURPOSE:
+#   This CodeBuild project promotes approved models from nonprod → target account (nonprod or prod),
+#   deploys inference pipelines, and triggers monitoring baseline setup.
+#
+# FLOW:
+#   Manual approval in CodePipeline → This buildspec runs →
+#     1. Discovers all model package groups for the model family
+#     2. For each group: promotes latest Approved model to target account
+#     3. Upserts inference pipelines in target
+#     4. Triggers monitoring Step Function per promoted model
+#     5. (Prod only) Triggers training metadata consumption ETL
+#
+# DEPLOY_STAGE values:
+#   - "nonprod" → promotes within same account (for testing the promotion flow)
+#   - "prod"    → promotes cross-account (nonprod → prod)
+#
+# WHAT TO CHANGE:
+#   1. NONPROD_ACCOUNT_ID / PROD_ACCOUNT_ID → Your account IDs (set as CodeBuild env vars)
+#   2. Role names (iam-CHANGE_ME-*-codebuild-service-role) → Your IAM role names
+#   3. SAGEMAKER_PROJECT_NAME/ID/ARN → Your SageMaker Project identifiers
+#   4. pipelines.list_groups → Your module that lists model package group names
+#   5. pipelines.inference_pipeline → Your inference pipeline upsert module
+#   6. sfn-CHANGE_ME-mon → Your monitoring Step Function name pattern
+#   7. sfn-CHANGE_ME-fw-transformation → Your framework SF for training metadata
+#   8. Expected model count (test assertion) → Your expected number of model groups
+#   9. ML_ART_BUCKET → Your ML artifacts bucket name pattern
+#   10. training_metadata path → Your S3 path for training metadata
+#
+# PREREQUISITES:
+#   - CodePipeline with manual approval stage before this runs
+#   - CodeBuild role can assume-role into nonprod AND prod
+#   - Model Package Groups exist in target (build.py creates them if missing)
+#   - Monitoring Step Function deployed in target account
+#   - Framework transformation SF deployed (for training metadata trigger)
+#
+# ============================================================
+
+version: 0.2
+
+env:
+  variables:
+    PYTHONUNBUFFERED: "TRUE"
+    # ─── SET IN CODEBUILD PROJECT (not here) ────────────────
+    # DEPLOY_STAGE: "nonprod" or "prod"
+    # NONPROD_ACCOUNT_ID: "123456789012"
+    # PROD_ACCOUNT_ID: "987654321098"
+    # NONPROD_SAGEMAKER_ROLE_ARN: "arn:aws:iam::123...:role/SageMakerRole"
+    # PROD_SAGEMAKER_ROLE_ARN: "arn:aws:iam::987...:role/SageMakerRole"
+    # SAGEMAKER_PROJECT_NAME: "my-ml-project"
+    # SAGEMAKER_PROJECT_ID: "p-xxxxxxxxxx"
+    # SAGEMAKER_PROJECT_ARN: "arn:aws:sagemaker:...:project/..."
+    # AWS_REGION: "us-east-1"  # CHANGE_ME: your AWS region
+    # ────────────────────────────────────────────────────────
+
+phases:
+  # ──────────────────────────────────────────────────────────
+  # INSTALL
+  # ──────────────────────────────────────────────────────────
+  install:
+    commands:
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
+      - export PATH="$HOME/.local/bin:$PATH"
+      - uv python install 3.12
+      - uv venv --python 3.12 /tmp/cienv
+      - . /tmp/cienv/bin/activate && uv pip install -r cicd-requirements.txt "awscli>1.20.30"
+
+  # ──────────────────────────────────────────────────────────
+  # PRE_BUILD: Route to correct account based on DEPLOY_STAGE
+  # ──────────────────────────────────────────────────────────
+  # This case statement determines which account and role to use.
+  # CHANGE: Replace role names with yours.
+  # ──────────────────────────────────────────────────────────
+  pre_build:
+    commands:
+      - export PATH="$HOME/.local/bin:$PATH"
+      - |
+        case $DEPLOY_STAGE in
+          nonprod)
+            export ACCOUNT_ID=$NONPROD_ACCOUNT_ID
+            export ASSUME_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/iam-CHANGE_ME-nonprod-codebuild-service-role"
+            export DEPLOY_ENV="dev"
+            ;;
+          prod)
+            export ACCOUNT_ID=$PROD_ACCOUNT_ID
+            export ASSUME_ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/iam-CHANGE_ME-prod-codebuild-service-role"
+            export DEPLOY_ENV="prod"
+            ;;
+          *)
+            echo "ERROR: Invalid DEPLOY_STAGE='$DEPLOY_STAGE'. Must be 'nonprod' or 'prod'."
+            exit 1
+            ;;
+        esac
+      # Assume role into target account
+      - |
+        export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s" \
+        $(aws sts assume-role --role-arn $ASSUME_ROLE_ARN --role-session-name codebuild-${DEPLOY_STAGE} \
+          --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" --output text))
+
+  # ──────────────────────────────────────────────────────────
+  # BUILD: Promote models + Upsert inference pipelines
+  # ──────────────────────────────────────────────────────────
+  build:
+    commands:
+      - export PATH="$HOME/.local/bin:$PATH"
+      - . /tmp/cienv/bin/activate
+      - export PYTHONPATH="$CODEBUILD_SRC_DIR:$CODEBUILD_SRC_DIR/utils:$PYTHONPATH"
+      - export MLOPS_SAGEMAKER_ROLE_NAME="${NONPROD_SAGEMAKER_ROLE_ARN##*role/}"
+      - export MLOPS_PROD_SAGEMAKER_ROLE_NAME="${PROD_SAGEMAKER_ROLE_ARN##*role/}"
+
+      # ─── Step 1: Discover model package groups ────────────
+      # CHANGE: Replace 'my_model' with your model family name.
+      # The list_groups module should return space-separated group names.
+      # Example output: "MyModel-ProductA-GA MyModel-ProductA-M1 MyModel-ProductB-GA"
+      - export PKG_GROUPS=$(python3 -m pipelines.list_groups --model CHANGE_ME)
+      - 'echo "Model package groups: [$PKG_GROUPS]"'
+
+      # ─── Step 2: Validate count (safety guard) ────────────
+      # CHANGE: Replace '6' with YOUR expected number of model groups.
+      # This prevents silent failures where list_groups returns partial results.
+      - 'test "$(echo $PKG_GROUPS | wc -w)" -eq 6 || { echo "FATAL: expected 6 groups, got [$(echo $PKG_GROUPS | wc -w)]"; exit 1; }'
+      - echo "Groups ($(echo $PKG_GROUPS | wc -w)):" $PKG_GROUPS
+
+      # ─── Step 3: Promote each model ──────────────────────
+      # build.py does the heavy lifting per model:
+      #   - Finds latest Approved package in source account
+      #   - Copies model artifacts (S3) to target account
+      #   - Registers ModelPackage in target account
+      #   - Creates ModelPackageGroup in target if not exists
+      #   - Writes Terraform tfvars for endpoint config (optional)
+      #
+      # CHANGE: Update --sagemaker-project-* flags with your values.
+      # The || true allows the loop to continue if one model fails (non-blocking).
+      # Remove || true if you want fail-fast behavior.
+      - cd realtime
+      - |
+        for g in $PKG_GROUPS; do
+          echo "═══ Promoting: $g ═══"
+          python3 build.py \
+            --sagemaker-project-name "$SAGEMAKER_PROJECT_NAME" \
+            --sagemaker-project-id "$SAGEMAKER_PROJECT_ID" \
+            --model-package-group-name "$g" \
+            --sagemaker-project-arn "$SAGEMAKER_PROJECT_ARN" \
+            --stage $DEPLOY_STAGE \
+            --training-id "$NONPROD_ACCOUNT_ID" \
+            --target-id "$ACCOUNT_ID" \
+            --environment $DEPLOY_STAGE \
+            --code "tf" || true
+        done
+      - cd $CODEBUILD_SRC_DIR
+
+      # ─── Step 4: Upsert inference pipelines in target ─────
+      # CHANGE: Replace with YOUR inference pipeline module.
+      # --no-run means create/update only, don't execute.
+      - python -m pipelines.inference_pipeline --env $DEPLOY_ENV --no-run
+
+      - echo "═══ Deploy complete: $(echo $PKG_GROUPS | wc -w) models promoted + pipelines upserted in $DEPLOY_STAGE ═══"
+
+  # ──────────────────────────────────────────────────────────
+  # POST_BUILD: Trigger monitoring + training metadata ETL
+  # ──────────────────────────────────────────────────────────
+  post_build:
+    commands:
+      # ─── Step 5: Trigger monitoring setup per model ───────
+      # For each promoted model, triggers a monitoring Step Function that:
+      #   - Creates data quality monitoring schedule
+      #   - Generates baseline statistics
+      #   - Configures drift detection thresholds
+      #
+      # CHANGE: Replace 'sfn-CHANGE_ME-mon' with your monitoring SF name.
+      - |
+        echo "Triggering model monitoring setup..."
+        for g in $PKG_GROUPS; do
+          PACKAGE_ARN=$(aws sagemaker list-model-packages \
+            --model-package-group-name "$g" \
+            --model-approval-status Approved \
+            --sort-by CreationTime --sort-order Descending \
+            --max-results 1 \
+            --query 'ModelPackageSummaryList[0].ModelPackageArn' \
+            --output text 2>/dev/null)
+          if [ "$PACKAGE_ARN" != "None" ] && [ -n "$PACKAGE_ARN" ]; then
+            aws stepfunctions start-execution \
+              --state-machine-arn "arn:aws:states:${AWS_REGION}:${ACCOUNT_ID}:stateMachine:sfn-CHANGE_ME-${DEPLOY_STAGE}-mon" \
+              --input "{\"model_package_group\": \"${g}\", \"package_arn\": \"${PACKAGE_ARN}\"}" || true
+            echo "  ✓ Triggered monitoring for $g"
+          else
+            echo "  ⚠ No approved package for $g — skipping monitoring"
+          fi
+        done
+
+      # ─── Step 6: Trigger training metadata ETL (PROD only) ─
+      # In prod, training happens in nonprod. We need to load training
+      # metadata into the prod consumption layer so dashboards can show
+      # model training history.
+      #
+      # Logic:
+      #   1. Auto-discover latest run_date folder from nonprod artifact bucket
+      #   2. Format as YYYY-MM-DD (framework SF requires this format)
+      #   3. Trigger the framework transformation SF with the job config
+      #
+      # CHANGE:
+      #   - ML_ART_BUCKET pattern → your nonprod ML artifacts bucket
+      #   - training_metadata S3 path → your path structure
+      #   - sfn-CHANGE_ME-fw-transformation → your framework SF name
+      #   - job_name → your DynamoDB config name for training metadata
+      # ──────────────────────────────────────────────────────
+      - |
+        if [ "$DEPLOY_STAGE" = "prod" ]; then
+          # CHANGE: Your nonprod ML artifacts bucket name pattern
+          ML_ART_BUCKET="s3-CHANGE_ME-nonprod-artifact-bucket-${NONPROD_ACCOUNT_ID}"
+
+          # CHANGE: Your training metadata S3 prefix
+          LATEST_RUN=$(aws s3 ls "s3://${ML_ART_BUCKET}/CHANGE_ME/training_metadata/" \
+            --region ${AWS_REGION} \
+            | grep -oE '^[[:space:]]+PRE [0-9]{8}/' \
+            | grep -oE '[0-9]{8}' \
+            | sort -r | head -1)
+
+          if [ -n "$LATEST_RUN" ]; then
+            # Convert YYYYMMDD → YYYY-MM-DD (framework SF validates this format)
+            DL_DATE=$(echo "$LATEST_RUN" | sed 's/\(....\)\(..\)\(..\)/\1-\2-\3/')
+            echo "Triggering training metadata consumption ETL in prod (dl_date=$DL_DATE)..."
+
+            # CHANGE: Your framework SF name and DDB job_name
+            aws stepfunctions start-execution \
+              --state-machine-arn "arn:aws:states:${AWS_REGION}:${ACCOUNT_ID}:stateMachine:sfn-CHANGE_ME-fw-transformation" \
+              --input "{\"job_name\":\"CHANGE_ME_training_metadata_pipeline\",\"dl_date\":\"${DL_DATE}\"}" \
+              --region ${AWS_REGION} || echo "  ⚠ training_metadata trigger failed (non-blocking)"
+          else
+            echo "  ⚠ No run_date folders found — skipping training metadata trigger"
+          fi
+        else
+          echo "Skipping training_metadata consumption — nonprod handled by retrain master SF"
+        fi
+
+      - echo "═══ Post-build complete ═══"
+
+# ──────────────────────────────────────────────────────────
+# ARTIFACTS: Terraform tfvars generated by build.py (for endpoint provisioning)
+# ──────────────────────────────────────────────────────────
+artifacts:
+  files:
+    - realtime/config-*.tfvars
+  name: mlops-deploy-$DEPLOY_STAGE

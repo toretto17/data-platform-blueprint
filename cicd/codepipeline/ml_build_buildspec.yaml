@@ -1,0 +1,124 @@
+# ============================================================
+# ML BUILD Buildspec — Upserts SageMaker Training + Inference Pipelines
+# ============================================================
+#
+# PURPOSE:
+#   This CodeBuild project runs on every push to the BUILD CodeCommit repo.
+#   It upserts (create-or-update) all SageMaker Pipelines in the NONPROD account.
+#   Training happens ONLY in nonprod. Prod never trains — it only receives promoted models.
+#
+# FLOW:
+#   Developer pushes code → CodeCommit BUILD repo → CodePipeline triggers →
+#   This buildspec runs → SageMaker Pipelines upserted (not executed)
+#
+# WHAT TO CHANGE:
+#   1. NONPROD_ACCOUNT_ID        → Your nonprod/dev AWS account ID
+#   2. NONPROD_SAGEMAKER_ROLE_ARN → SageMaker execution role in nonprod
+#   3. codebuild-service-role     → Your CodeBuild cross-account role name
+#   4. pipelines.train_pipeline   → Your Python module that defines training pipelines
+#   5. pipelines.inference_pipeline → Your Python module that defines inference pipelines
+#   6. --env dev                  → Your nonprod environment name (dev/staging/nonprod)
+#   7. Expected pipeline count (test assertion) → Change to match your model count
+#
+# PREREQUISITES:
+#   - CodeBuild project in tooling account (or same account)
+#   - IAM role with sts:AssumeRole to nonprod codebuild-service-role
+#   - CodeCommit repo contains: common/, pipelines/, model code, config/, utils/
+#   - cicd-requirements.txt has: boto3, sagemaker, awscli
+#
+# ACCOUNTS INVOLVED:
+#   Tooling Account (CodeBuild runs here) → assumes role into → Nonprod Account (pipelines created here)
+#   If single-account: remove the sts:AssumeRole pre_build step entirely.
+#
+# ============================================================
+
+version: 0.2
+
+env:
+  variables:
+    PYTHONUNBUFFERED: "TRUE"
+    # ─── CHANGE THESE ───────────────────────────────────────
+    # NONPROD_ACCOUNT_ID: Set in CodeBuild environment variables (not hardcoded)
+    # NONPROD_SAGEMAKER_ROLE_ARN: Set in CodeBuild environment variables
+    # ────────────────────────────────────────────────────────
+
+phases:
+  # ──────────────────────────────────────────────────────────
+  # INSTALL: Set up Python environment with dependencies
+  # ──────────────────────────────────────────────────────────
+  install:
+    commands:
+      # Using uv for fast Python installs. Replace with pip if preferred.
+      - curl -LsSf https://astral.sh/uv/install.sh | sh
+      - export PATH="$HOME/.local/bin:$PATH"
+      - uv python install 3.12
+      - uv venv --python 3.12 /tmp/cienv
+      - . /tmp/cienv/bin/activate && uv pip install -r cicd-requirements.txt "awscli>1.20.30"
+      # ─── ALTERNATIVE (pip-based): ───
+      # - pip install -r cicd-requirements.txt
+
+  # ──────────────────────────────────────────────────────────
+  # PRE_BUILD: Assume cross-account role into nonprod
+  # ──────────────────────────────────────────────────────────
+  # WHY: CodeBuild runs in tooling account. SageMaker Pipelines must be
+  # created in the nonprod account where training data and resources live.
+  #
+  # IF SINGLE ACCOUNT: Remove this entire pre_build section.
+  # ──────────────────────────────────────────────────────────
+  pre_build:
+    commands:
+      - export PATH="$HOME/.local/bin:$PATH"
+      # Extract role name from ARN (used by pipeline builder to pass to SageMaker)
+      - export MLOPS_SAGEMAKER_ROLE_NAME="${NONPROD_SAGEMAKER_ROLE_ARN##*role/}"
+      # Assume role into nonprod account
+      # CHANGE: Replace role name 'iam-CHANGE_ME-nonprod-codebuild-service-role'
+      - |
+        export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s" \
+        $(aws sts assume-role \
+          --role-arn arn:aws:iam::$NONPROD_ACCOUNT_ID:role/iam-CHANGE_ME-nonprod-codebuild-service-role \
+          --role-session-name assumed-role \
+          --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]" --output text))
+
+  # ──────────────────────────────────────────────────────────
+  # BUILD: Upsert all SageMaker Pipelines (Training + Inference)
+  # ──────────────────────────────────────────────────────────
+  # Each pipeline module (e.g., pipelines.train_pipeline) should:
+  #   1. Read config (env, role, bucket paths)
+  #   2. Build SageMaker Pipeline definition (steps, parameters)
+  #   3. Call pipeline.upsert() to create/update in SageMaker
+  #   4. NOT start execution (--no-run flag)
+  #
+  # Pipelines are created but not run. Execution happens via:
+  #   - EventBridge scheduled rule (daily/monthly)
+  #   - Manual trigger from Step Function
+  #   - Retrain master SF
+  # ──────────────────────────────────────────────────────────
+  build:
+    commands:
+      - export PATH="$HOME/.local/bin:$PATH"
+      - . /tmp/cienv/bin/activate
+      # Add source directories to Python path
+      - export PYTHONPATH="$CODEBUILD_SRC_DIR:$CODEBUILD_SRC_DIR/utils:$PYTHONPATH"
+      - export MLOPS_SAGEMAKER_ROLE_NAME="${NONPROD_SAGEMAKER_ROLE_ARN##*role/}"
+      - python -V
+
+      # ─── CHANGE: Replace with YOUR pipeline modules ───────
+      # Training pipelines (model-specific)
+      - echo "=== Upserting TRAINING pipelines ==="
+      - python -m pipelines.train_pipeline --env dev --no-run
+      # CHANGE: 'dev' → your nonprod environment name
+
+      # Inference pipelines (model-specific)
+      - echo "=== Upserting INFERENCE pipelines ==="
+      - python -m pipelines.inference_pipeline --env dev --no-run
+
+      # ─── VALIDATION (optional but recommended) ────────────
+      # Count how many pipelines were upserted and assert expected number.
+      # This catches accidental deletions or broken pipeline definitions.
+      # CHANGE: Replace '14' with your expected total pipeline count.
+      # - |
+      #   PIPELINE_COUNT=$(aws sagemaker list-pipelines --query 'length(PipelineSummaries)' --output text)
+      #   echo "Total pipelines in account: $PIPELINE_COUNT"
+      #   test "$PIPELINE_COUNT" -ge 14 || { echo "FATAL: expected >= 14 pipelines"; exit 1; }
+
+      - echo "=== All pipelines upserted successfully ==="

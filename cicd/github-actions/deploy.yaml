@@ -15,7 +15,7 @@ on:
     branches: [main]
 
 env:
-  AWS_REGION: ap-southeast-1
+  AWS_REGION: us-east-1  # CHANGE_ME: your AWS region
   PROJECT: CHANGE_ME
   FEATURE: CHANGE_ME
 

@@ -5,7 +5,7 @@
 # ============================================================
 set -euo pipefail
 ENV=${1:?usage: deploy_glue_scripts.sh <env> <region>}
-REGION=${2:-ap-southeast-1}
+REGION=${2:-us-east-1}  # CHANGE_ME: your default AWS region
 BUCKET="s3-CHANGE_ME-${ENV}-artifactory-CHANGE_ME"   # CHANGE_ME
 
 echo "🚀 Deploying scripts → s3://${BUCKET}/scripts/ (env=${ENV})"

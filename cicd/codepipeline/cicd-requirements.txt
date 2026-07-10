@@ -1,0 +1,31 @@
+# CI/CD Dependencies — Pinned for CodeBuild reproducibility
+# ============================================================
+# These are installed in the CodeBuild environment (not in the model container).
+# Used by: build.py, pipelines/*.py, _monitoring_defaults.py
+#
+# CHANGE: Update versions to match your project's compatibility requirements.
+# Pin major.minor at minimum to avoid breaking changes during deploys.
+# ============================================================
+
+# AWS SDK — required for all SageMaker/S3/DDB operations
+boto3>=1.34.0,<2.0.0
+
+# SageMaker SDK — required for Pipeline upsert, Model Registry, Batch Transform
+sagemaker>=2.200.0,<3.0.0
+
+# SageMaker Core — required by newer sagemaker SDK versions
+sagemaker-core>=2.0.0,<3.0.0
+
+# Serialization — used by SageMaker SDK internally for pipeline definitions
+cloudpickle>=3.0.0,<4.0.0
+
+# Data validation — used by pipeline parameter schemas
+pydantic>=2.0.0,<3.0.0
+
+# Data manipulation — used by monitoring defaults and baseline computation
+pandas>=2.0.0,<3.0.0
+numpy>=1.24.0,<2.0.0
+
+# S3 data access (optional) — used for reading evaluation.json from S3
+# Remove if you don't use awswrangler for S3 reads in build.py
+# awswrangler>=3.0.0,<4.0.0

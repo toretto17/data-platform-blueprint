@@ -3,7 +3,7 @@ version: 0.2
 env:
   variables:
     ENV: "CHANGE_ME"  # dev | prod
-    REGION: "ap-southeast-1"
+    REGION: "us-east-1"  # CHANGE_ME: your AWS region
 phases:
   install:
     commands:
