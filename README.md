@@ -147,7 +147,7 @@ data-platform-blueprint/
 ├── 📁 docs/                   Architecture, runbooks, onboarding
 ├── 📁 templates/              Starter files (pointers to full code)
 ├── 📁 tests/                  Unit + integration tests
-├── 📁 cicd/                   GitHub Actions + CodeBuild
+├── 📁 cicd/                   GitHub Actions + CodeBuild + CodePipeline (ML CI/CD)
 └── 📁 monitoring/             Alerts, dashboards, metrics
 ```
 

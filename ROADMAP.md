@@ -259,12 +259,17 @@ Shared (top-level, not per-platform): `docs/`, `configs/`, `monitoring/`, `cicd/
 ## PHASE 9 — CI/CD  (Priority: MEDIUM)
 
 - [x] `cicd/github-actions/deploy.yaml` (exists — review/extend)
-- [ ] `cicd/github-actions/ci.yaml` — lint + test on PR
-- [ ] `cicd/codebuild/buildspec.yaml` — AWS-native build
-- [ ] `cicd/codepipeline/pipeline.json` — AWS-native pipeline
-- [ ] `cicd/deployment/deploy_glue_scripts.sh` — upload scripts to S3 artifactory
-- [ ] `cicd/deployment/deploy_databricks.sh` — DAB deploy
-- [ ] `cicd/README.md`
+- [x] `cicd/github-actions/ci.yaml` — lint + test on PR
+- [x] `cicd/codebuild/buildspec.yaml` — AWS-native build
+- [x] `cicd/codepipeline/ml_build_buildspec.yaml` — SageMaker pipeline upsert (train + inference)
+- [x] `cicd/codepipeline/ml_deploy_buildspec.yaml` — model promotion + inference deploy + monitoring trigger
+- [x] `cicd/codepipeline/build.py` — cross-account model promotion script (find → copy → register → monitor → tfvars)
+- [x] `cicd/codepipeline/_monitoring_defaults.py` — fallback DDB row builder for monitoring bootstrap
+- [x] `cicd/codepipeline/sync_repos.sh` — CodeCommit build/deploy repo sync automation
+- [x] `cicd/codepipeline/cicd-requirements.txt` — pinned dependencies for CodeBuild
+- [x] `cicd/codepipeline/README.md` — full setup guide (IAM, CodePipeline, troubleshooting)
+- [x] `cicd/deployment/deploy_glue_scripts.sh` — upload scripts to S3 artifactory
+- [x] `cicd/README.md`
 
 ---
 
