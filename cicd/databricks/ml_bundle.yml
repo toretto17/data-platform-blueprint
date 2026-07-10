@@ -1,0 +1,314 @@
+# ============================================================
+# Databricks ML Asset Bundle — Training + Inference + Monitoring
+# ============================================================
+#
+# PURPOSE:
+#   Defines ML workflows (training, batch inference, monitoring) as
+#   Declarative Automation Bundles (formerly Databricks Asset Bundles / DABs).
+#   Deploy with: databricks bundle deploy -t <target>
+#
+# PATTERN:
+#   Based on official Databricks MLOps Stacks pattern:
+#   https://docs.databricks.com/dev-tools/bundles/mlops-stacks.html
+#
+# WHAT TO CHANGE:
+#   1. bundle.name → your project name
+#   2. workspace.host → your workspace URLs (dev/staging/prod)
+#   3. catalog names → your Unity Catalog names per environment
+#   4. notebook_path → your actual notebook/script paths
+#   5. node_type_id → your preferred instance types
+#   6. schedule → your training/inference frequency
+#   7. variables → your table names, model names, parameters
+#
+# ENVIRONMENTS:
+#   dev     → ML engineers deploy during development (default)
+#   staging → CI/CD auto-deploys on merge to main (integration testing)
+#   prod    → CD auto-deploys on release branch (production)
+#   test    → CI integration tests (uses staging workspace)
+#
+# DEPLOY:
+#   databricks bundle validate -t dev
+#   databricks bundle deploy -t dev
+#   databricks bundle deploy -t prod
+#   databricks bundle destroy -t dev  (cleanup)
+#
+# ============================================================
+
+bundle:
+  name: CHANGE_ME-ml-project
+
+# ─── VARIABLES (override per target below) ─────────────────
+variables:
+  # Unity Catalog locations
+  catalog:
+    description: Unity Catalog catalog name
+    default: CHANGE_ME_dev
+  schema:
+    description: UC schema for model and feature tables
+    default: ml_models
+  model_name:
+    description: Registered model name in UC
+    default: CHANGE_ME_model
+
+  # Training parameters
+  training_table:
+    description: Delta table with training features
+    default: CHANGE_ME_catalog.CHANGE_ME_schema.training_features
+  label_column:
+    description: Target column name
+    default: target
+  experiment_name:
+    description: MLflow experiment path
+    default: /dev-CHANGE_ME-experiment
+
+  # Inference parameters
+  inference_input_table:
+    description: Input Delta table for batch inference
+    default: CHANGE_ME_catalog.CHANGE_ME_schema.inference_input
+  inference_output_table:
+    description: Output Delta table for predictions
+    default: CHANGE_ME_catalog.CHANGE_ME_schema.predictions
+
+  # Monitoring
+  monitoring_table:
+    description: Table to monitor (usually inference output)
+    default: CHANGE_ME_catalog.CHANGE_ME_schema.predictions
+
+# ─── SHARED CLUSTER CONFIG (YAML anchor for reuse) ─────────
+# CHANGE: Update spark_version and node_type_id to match your workspace.
+# Use `databricks clusters spark-versions` to list available versions.
+
+_cluster_config: &cluster_config
+  new_cluster:
+    num_workers: 3
+    spark_version: "15.4.x-cpu-ml-scala2.12"  # CHANGE_ME: your Databricks Runtime ML version
+    node_type_id: "i3.xlarge"                  # CHANGE_ME: your instance type
+    autoscale:
+      min_workers: 1
+      max_workers: 8
+    custom_tags:
+      project: ${bundle.name}
+      environment: ${bundle.target}
+
+# GPU cluster for deep learning models (optional)
+_gpu_cluster_config: &gpu_cluster_config
+  new_cluster:
+    num_workers: 1
+    spark_version: "15.4.x-gpu-ml-scala2.12"  # CHANGE_ME: GPU ML runtime
+    node_type_id: "g5.2xlarge"                 # CHANGE_ME: GPU instance
+    custom_tags:
+      project: ${bundle.name}
+      environment: ${bundle.target}
+
+# ─── ML ARTIFACTS (Model + Experiment) ─────────────────────
+resources:
+  # MLflow Experiment — tracks training runs
+  experiments:
+    ml_experiment:
+      name: ${var.experiment_name}
+      permissions:
+        - group_name: "CHANGE_ME-ml-engineers"
+          permission_level: CAN_MANAGE
+
+  # Unity Catalog Model — registered model for deployment
+  models:
+    ml_model:
+      name: ${var.catalog}.${var.schema}.${var.model_name}
+      description: "ML model managed by ${bundle.name} bundle"
+      # Permissions inherited from UC catalog/schema
+
+  # ─── TRAINING WORKFLOW ─────────────────────────────────────
+  jobs:
+    model_training_job:
+      name: "${bundle.target}-${bundle.name}-training"
+      description: "Train model, evaluate, register to UC if metrics pass"
+      # CHANGE: Adjust schedule for your retraining frequency
+      schedule:
+        quartz_cron_expression: "0 0 2 1 * ?"  # Monthly on 1st at 02:00 UTC
+        timezone_id: "UTC"
+      tasks:
+        # Task 1: Feature engineering / data preparation
+        - task_key: prepare_features
+          <<: *cluster_config
+          notebook_task:
+            # CHANGE: Path to your feature engineering notebook
+            notebook_path: ../databricks/src/data_science/feature_engineering/feature_engineering.py
+            base_parameters:
+              env: ${bundle.target}
+              catalog: ${var.catalog}
+              training_table: ${var.training_table}
+              label_column: ${var.label_column}
+            source: WORKSPACE
+
+        # Task 2: Model training
+        - task_key: train_model
+          depends_on:
+            - task_key: prepare_features
+          <<: *cluster_config
+          notebook_task:
+            # CHANGE: Path to your training notebook
+            notebook_path: ../databricks/src/mlops/training/training_pipeline.py
+            base_parameters:
+              env: ${bundle.target}
+              experiment_name: ${var.experiment_name}
+              training_table: ${var.training_table}
+              label_column: ${var.label_column}
+              model_name: ${var.catalog}.${var.schema}.${var.model_name}
+            source: WORKSPACE
+
+        # Task 3: Model validation (evaluate metrics, compare to champion)
+        - task_key: validate_model
+          depends_on:
+            - task_key: train_model
+          <<: *cluster_config
+          notebook_task:
+            # CHANGE: Path to your validation notebook
+            notebook_path: ../databricks/src/mlops/evaluation/evaluate.py
+            base_parameters:
+              env: ${bundle.target}
+              model_name: ${var.catalog}.${var.schema}.${var.model_name}
+              # Validation thresholds — CHANGE these to your requirements
+              min_accuracy: "0.85"
+              max_rmse: "0.15"
+            source: WORKSPACE
+
+        # Task 4: Register model (promote to Challenger alias if validation passes)
+        - task_key: register_model
+          depends_on:
+            - task_key: validate_model
+          <<: *cluster_config
+          notebook_task:
+            # CHANGE: Path to your registration notebook
+            notebook_path: ../databricks/src/mlops/registry/registry.py
+            base_parameters:
+              env: ${bundle.target}
+              model_name: ${var.catalog}.${var.schema}.${var.model_name}
+              alias: "Challenger"  # Newly trained model starts as Challenger
+            source: WORKSPACE
+
+    # ─── BATCH INFERENCE WORKFLOW ────────────────────────────
+    batch_inference_job:
+      name: "${bundle.target}-${bundle.name}-batch-inference"
+      description: "Score new data using Champion model, write predictions to Delta"
+      # CHANGE: Adjust schedule for your inference frequency
+      schedule:
+        quartz_cron_expression: "0 0 6 * * ?"  # Daily at 06:00 UTC
+        timezone_id: "UTC"
+      tasks:
+        - task_key: batch_inference
+          <<: *cluster_config
+          notebook_task:
+            # CHANGE: Path to your inference notebook
+            notebook_path: ../databricks/src/mlops/inference/inference.py
+            base_parameters:
+              env: ${bundle.target}
+              model_name: ${var.catalog}.${var.schema}.${var.model_name}
+              model_alias: "Champion"  # Always score with Champion
+              input_table: ${var.inference_input_table}
+              output_table: ${var.inference_output_table}
+            source: WORKSPACE
+
+    # ─── MONITORING WORKFLOW ─────────────────────────────────
+    monitoring_job:
+      name: "${bundle.target}-${bundle.name}-monitoring"
+      description: "Check model quality metrics, trigger retraining if degraded"
+      schedule:
+        quartz_cron_expression: "0 0 8 * * ?"  # Daily at 08:00 UTC (after inference)
+        timezone_id: "UTC"
+      tasks:
+        # Task 1: Refresh Lakehouse Monitor metrics
+        - task_key: refresh_monitor
+          <<: *cluster_config
+          notebook_task:
+            # CHANGE: Path to your monitoring notebook
+            notebook_path: ../databricks/src/mlops/monitoring/monitoring.py
+            base_parameters:
+              env: ${bundle.target}
+              monitoring_table: ${var.monitoring_table}
+              model_name: ${var.catalog}.${var.schema}.${var.model_name}
+            source: WORKSPACE
+
+        # Task 2: Check for metric violations → trigger retraining if needed
+        - task_key: check_violations
+          depends_on:
+            - task_key: refresh_monitor
+          <<: *cluster_config
+          notebook_task:
+            notebook_path: ../databricks/src/mlops/monitoring/monitoring.py
+            base_parameters:
+              env: ${bundle.target}
+              mode: "check_violations"
+              monitoring_table: ${var.monitoring_table}
+              # CHANGE: Threshold for triggering retrain
+              drift_threshold: "0.1"
+              quality_threshold: "0.80"
+            source: WORKSPACE
+
+    # ─── MODEL PROMOTION WORKFLOW (manual trigger) ───────────
+    # This job promotes Challenger → Champion after human review.
+    # Triggered manually or by CI/CD after validation passes.
+    model_promotion_job:
+      name: "${bundle.target}-${bundle.name}-promote"
+      description: "Promote Challenger to Champion (manual trigger after review)"
+      # No schedule — triggered manually or by CI/CD
+      tasks:
+        - task_key: promote_model
+          <<: *cluster_config
+          notebook_task:
+            notebook_path: ../cicd/databricks/promote_model.py
+            base_parameters:
+              env: ${bundle.target}
+              model_name: ${var.catalog}.${var.schema}.${var.model_name}
+              from_alias: "Challenger"
+              to_alias: "Champion"
+            source: WORKSPACE
+
+# ─── TARGETS (Environment-specific overrides) ──────────────
+targets:
+  dev:
+    # Development workspace — ML engineers deploy here during development
+    workspace:
+      host: https://CHANGE_ME-dev.cloud.databricks.com  # CHANGE_ME
+    default: true
+    variables:
+      catalog: dev_catalog              # CHANGE_ME
+      experiment_name: /dev-${bundle.name}-experiment
+      training_table: dev_catalog.ml_features.training_data       # CHANGE_ME
+      inference_input_table: dev_catalog.ml_features.latest_data  # CHANGE_ME
+      inference_output_table: dev_catalog.ml_output.predictions   # CHANGE_ME
+      monitoring_table: dev_catalog.ml_output.predictions         # CHANGE_ME
+
+  staging:
+    # Staging workspace — auto-deployed on merge to main
+    workspace:
+      host: https://CHANGE_ME-staging.cloud.databricks.com  # CHANGE_ME
+    variables:
+      catalog: staging_catalog          # CHANGE_ME
+      model_name: staging_${var.model_name}
+      experiment_name: /staging-${bundle.name}-experiment
+      training_table: staging_catalog.ml_features.training_data
+      inference_input_table: staging_catalog.ml_features.latest_data
+      inference_output_table: staging_catalog.ml_output.predictions
+      monitoring_table: staging_catalog.ml_output.predictions
+
+  prod:
+    # Production workspace — deployed on release
+    workspace:
+      host: https://CHANGE_ME-prod.cloud.databricks.com  # CHANGE_ME
+    variables:
+      catalog: prod_catalog             # CHANGE_ME
+      model_name: prod_${var.model_name}
+      experiment_name: /prod-${bundle.name}-experiment
+      training_table: prod_catalog.ml_features.training_data
+      inference_input_table: prod_catalog.ml_features.latest_data
+      inference_output_table: prod_catalog.ml_output.predictions
+      monitoring_table: prod_catalog.ml_output.predictions
+
+  test:
+    # Test target — used by CI for integration tests (same workspace as staging)
+    workspace:
+      host: https://CHANGE_ME-staging.cloud.databricks.com  # CHANGE_ME (same as staging)
+    variables:
+      catalog: test_catalog             # CHANGE_ME (isolated catalog for tests)
+      model_name: test_${var.model_name}
+      experiment_name: /test-${bundle.name}-experiment
